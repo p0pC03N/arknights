@@ -5,8 +5,8 @@ import React from "react";
 const base = import.meta.env.BASE_URL
 
 export default {
-    title: "Arknights",
-    description: "",
+    title: "玉米方舟",
+    description: "一个退游博士的个人博客",
     language: "zh",
     bgm: {
         autoplay: false,
@@ -17,7 +17,7 @@ export default {
     navbar: {
         logo: {
             element: () => <TitleArknights className="w-full h-auto pointer-events-none"/>,
-            alt: "Arknights Logo"
+            alt: "p0pC03N"
         },
         items: [
             {title: "INDEX", subtitle: "首页", href: base + "#index"},
@@ -28,19 +28,15 @@ export default {
             {title: "MORE", subtitle: "更多内容", href: base + "#more"},
         ],
         toolbox: {
-            Skland: "https://www.skland.com/",
-            Bilibili: "https://space.bilibili.com/28606851",
-            WeChat: "https://weixin.qq.com/",
-            Weibo: "https://weibo.com/",
-            TapTap: "https://www.taptap.cn/",
-            GitHub: "https://github.com/Yue-plus/astro-arknights",
+            Email: "mailto:1433209484@qq.com",
+            GitHub: "https://github.com/p0pC03N/arknights",
         },
         ownerInfo: {
-            name: "Yue_plus",
-            slogan: "一切不如意终将远去，未来风景独好。",
+            name: "p0pC03N",
+            slogan: "事在人为",
             footerLinks: [
-                {label: "GitHub", url: "https://github.com/Yue-plus"},
-                {label: "Bilibili", url: "https://space.bilibili.com/28606851"},
+                {label: "GitHub", url: "https://github.com/p0pC03N"},
+                {label: "Email", url: "mailto:1433209484@qq.com"},
             ]
         }
     },
@@ -80,7 +76,7 @@ export default {
                     icon: <IconGitHub className="w-full h-auto pointer-events-none"/>,
                     label: "GitHub",
                     subLabel: "Repository",
-                    href: "https://github.com/Yue-plus/astro-arknights",
+                    href: "https://github.com/p0pC03N",
                     className: "text-white bg-black border-[#333] hover:border-white font-benderBold",
                 },
             ],
