@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useStore } from "@nanostores/react";
 import { viewIndex, readyToTouch } from "../../components/store/rootLayoutStore.ts";
 import { directions } from "../../components/store/lineDecoratorStore";
+import arknightsConfig from "../../../arknights.config";
+import FriendLinks from "../../components/FriendLinks";
 
 export default function Operator() {
     const $viewIndex = useStore(viewIndex);
@@ -21,7 +23,13 @@ export default function Operator() {
             <div className="w-full h-full" style={{backgroundColor: "darkgrey"}}>
                 <h1 className="text-9xl absolute top-1/4 left-1/4">TODO: Operator</h1>
             </div>
-            {/* TODO: Operator */}
+            {/* 友链区域 */}
+            <div className="absolute left-0 right-0 bottom-0 bg-black/60 backdrop-blur-md">
+              <FriendLinks
+                links={arknightsConfig.rootPage?.OPERATOR?.friendLinks ?? []}
+              />
+            </div> 
+          </div>
         </div>
     );
 }
