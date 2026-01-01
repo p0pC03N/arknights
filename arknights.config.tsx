@@ -9,7 +9,7 @@ const config: ArknightsConfig = {
   language: "zh",
 
   bgm: {
-    autoplay: true,
+    autoplay: false,
     src: base + "audios/bgm.mp3",
   },
 
