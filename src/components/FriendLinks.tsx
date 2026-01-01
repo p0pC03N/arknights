@@ -1,10 +1,19 @@
 import React from "react";
 
+const base = import.meta.env.BASE_URL;
+
+function withBase(url?: string) {
+  if (!url) return url;
+  if (/^https?:\/\//i.test(url)) return url;
+  if (url.startsWith("/")) return base + url.slice(1);
+  return base + url;
+}
+
 export type FriendLink = {
   name: string;
   url: string;
   desc?: string;
-  avatar?: string; // 建议用 /images/friends/xxx.png
+  avatar?: string;
 };
 
 export default function FriendLinks({ links }: { links: FriendLink[] }) {
@@ -12,18 +21,18 @@ export default function FriendLinks({ links }: { links: FriendLink[] }) {
     return (
       <div className="w-full max-w-5xl mx-auto p-6 text-white/80">
         <div className="text-xl font-bold mb-2">友链</div>
-        <div className="text-sm opacity-80">暂无友链（去 arknights.config.tsx 添加 friendLinks）</div>
+        <div className="text-sm opacity-80">
+          暂无友链（去 arknights.config.tsx 添加 friendLinks）
+        </div>
       </div>
     );
   }
 
   return (
     <div className="w-full max-w-5xl mx-auto p-6 text-white">
-      <div className="flex items-end justify-between mb-4">
-        <div>
-          <div className="text-2xl font-bold">友链</div>
-          <div className="text-sm opacity-70">Links / Friends</div>
-        </div>
+      <div className="mb-4">
+        <div className="text-2xl font-bold">友链</div>
+        <div className="text-sm opacity-70">Links / Friends</div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -37,7 +46,7 @@ export default function FriendLinks({ links }: { links: FriendLink[] }) {
           >
             {it.avatar ? (
               <img
-                src={it.avatar}
+                src={withBase(it.avatar)}
                 alt={it.name}
                 className="w-12 h-12 rounded-full object-cover"
                 loading="lazy"
@@ -48,7 +57,9 @@ export default function FriendLinks({ links }: { links: FriendLink[] }) {
 
             <div className="min-w-0">
               <div className="font-semibold text-lg truncate">{it.name}</div>
-              {it.desc ? <div className="text-sm opacity-80 truncate">{it.desc}</div> : null}
+              {it.desc && (
+                <div className="text-sm opacity-80 truncate">{it.desc}</div>
+              )}
               <div className="text-xs opacity-60 truncate">{it.url}</div>
             </div>
           </a>
