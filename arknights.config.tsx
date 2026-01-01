@@ -123,4 +123,15 @@ export default {
             ],
         },
     },
+        OPERATOR: {
+        friendLinks: [
+          {
+            name: "xiexie",
+            url: "xiexie-qiuligao.github.io",
+            desc: "长发快乐男（本人如是说",
+            avatar: "/images/friends/xiexie_friendlink.png",
+          },
+        ],
+      },
+    },
 } as ArknightsConfig
