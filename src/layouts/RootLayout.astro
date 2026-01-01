@@ -10,6 +10,9 @@ import ToolBox from "../components/ToolBox"
 import OwnerInfo from "../components/OwnerInfo"
 import {SvgDefs} from "../components/SvgIcons"
 
+// ✅ 新增：鼠标特效组件
+import ArkCursor from "../components/ArkCursor"
+
 interface Props {
     lang?: string
     title?: string
@@ -35,7 +38,11 @@ const {lang, title, description, subNavigationItems} = Astro.props
     <Scrollbar/>
     <ResponsiveFontSize/>
 </head>
+
 <body class="w-full h-full text-white bg-black m-0 overflow-hidden">
+  {/* ✅ 全站鼠标特效：建议放 body 里最前面，这样 z-index 好控制 */}
+  <ArkCursor client:load />
+
   <div class="w-full h-full relative bg-layout bg-center bg-cover bg-no-repeat">
     <div class="relative w-full h-full m-auto max-w-[180rem]">
         <Header/>
@@ -45,6 +52,7 @@ const {lang, title, description, subNavigationItems} = Astro.props
         <OwnerInfo client:load/>
     </div>
   </div>
+
   <SvgDefs/>
 </body>
 </html>
