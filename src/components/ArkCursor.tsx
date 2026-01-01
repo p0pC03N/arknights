@@ -1,133 +1,120 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect } from 'react';
 
-type Props = { defaultEnabled?: boolean };
+const getElement = (selector: string, parent = document) =>
+  parent.querySelector(selector) as HTMLElement;
 
-export default function ArkCursor({ defaultEnabled = true }: Props) {
-  const [enabled, setEnabled] = useState(defaultEnabled);
-  const [isTouch, setIsTouch] = useState(false);
-  const [isHover, setIsHover] = useState(false);
-  const [isDown, setIsDown] = useState(false);
-
-  const dotRef = useRef<HTMLDivElement | null>(null);
-  const ringRef = useRef<HTMLDivElement | null>(null);
-
-  const pos = useRef({ x: 0, y: 0 });
-  const ring = useRef({ x: 0, y: 0 });
-  const raf = useRef<number | null>(null);
-
+export default function Cursor() {
   useEffect(() => {
-    const touch =
-      "ontouchstart" in window ||
-      (navigator as any).maxTouchPoints > 0 ||
-      window.matchMedia?.("(pointer: coarse)").matches;
+    class CursorEffect {
+      private now: MouseEvent = new MouseEvent('');
+      private first: boolean = true;
+      private last: number = 0;
+      private moveIng: boolean = false;
+      private fadeIng: boolean = false;
+      private nowX: number = 0;
+      private nowY: number = 0;
+      private readonly outer: CSSStyleDeclaration;
+      private readonly effecter: CSSStyleDeclaration;
+      private readonly attention: string =
+        `a, input, button, textarea, .navBtnIcon, #post-content img, .ex-header`;
 
-    setIsTouch(!!touch);
-    if (touch) setEnabled(false);
+      private set = (X: number = this.nowX, Y: number = this.nowY) => {
+        this.outer.transform = `translate(calc(${X.toFixed(2)}px - 50%), calc(${Y.toFixed(2)}px - 50%))`;
+      };
 
-    console.log("[ArkCursor] mounted");
+      private move = (timestamp: number) => {
+        if (this.now !== undefined) {
+          let delX = this.now.x - this.nowX,
+            delY = this.now.y - this.nowY;
+          this.nowX += delX * Math.min(0.025 * (timestamp - this.last), 1);
+          this.nowY += delY * Math.min(0.025 * (timestamp - this.last), 1);
+          this.set();
+          this.last = timestamp;
+          if (Math.abs(delX) > 0.1 || Math.abs(delY) > 0.1) {
+            window.requestAnimationFrame(this.move);
+          } else {
+            this.set(this.now.x, this.now.y);
+            this.moveIng = false;
+          }
+        }
+      };
+
+      private reset = (mouse: MouseEvent) => {
+        this.outer.top = '0';
+        this.outer.left = '0';
+        if (!this.moveIng) {
+          this.moveIng = true;
+          window.requestAnimationFrame(this.move);
+        }
+        this.now = mouse;
+        if (this.first) {
+          this.first = false;
+          this.nowX = this.now.x;
+          this.nowY = this.now.y;
+          this.set();
+        }
+      };
+
+      private Aeffect = (mouse: MouseEvent) => {
+        if (this.fadeIng == false) {
+          this.fadeIng = true;
+          this.effecter.left = String(mouse.x) + 'px';
+          this.effecter.top = String(mouse.y) + 'px';
+          this.effecter.transition =
+            'transform .5s cubic-bezier(0.22, 0.61, 0.21, 1), opacity .5s cubic-bezier(0.22, 0.61, 0.21, 1)';
+          this.effecter.transform = 'translate(-50%, -50%) scale(1)';
+          this.effecter.opacity = '0';
+          setTimeout(() => {
+            this.fadeIng = false;
+            this.effecter.transition = '';
+            this.effecter.transform = 'translate(-50%, -50%) scale(0)';
+            this.effecter.opacity = '1';
+          }, 500);
+        }
+      };
+
+      private hold = () => {
+        this.outer.height = '24px';
+        this.outer.width = '24px';
+        this.outer.background = 'var(--theme-cursor-bg)';
+      };
+
+      public relax = () => {
+        this.outer.height = '36px';
+        this.outer.width = '36px';
+        this.outer.background = 'unset';
+      };
+
+      private pushHolder = () => {
+        document.querySelectorAll(this.attention).forEach((item) => {
+          if (!(item as HTMLElement).classList.contains('is--active')) {
+            item.addEventListener('mouseover', this.hold, { passive: true });
+            item.addEventListener('mouseout', this.relax, { passive: true });
+          }
+        });
+      };
+
+      constructor() {
+        let node: HTMLElement = document.createElement('div');
+        node.id = 'cursor-container';
+        node.innerHTML = `<div id="cursor-outer"></div><div id="cursor-effect"></div>`;
+        document.body.appendChild(node);
+        this.outer = getElement('#cursor-outer', node).style;
+        this.outer.top = '-100%';
+        this.effecter = getElement('#cursor-effect', node).style;
+        this.effecter.transform = 'translate(-50%, -50%) scale(0)';
+        this.effecter.opacity = '1';
+        window.addEventListener('mousemove', this.reset, { passive: true });
+        window.addEventListener('click', this.Aeffect, { passive: true });
+        this.pushHolder();
+        const observer = new MutationObserver(this.pushHolder);
+        observer.observe(document, { childList: true, subtree: true });
+      }
+    }
+    new CursorEffect();
   }, []);
 
-  useEffect(() => {
-    if (!enabled || isTouch) {
-      if (dotRef.current) dotRef.current.style.opacity = "0";
-      if (ringRef.current) ringRef.current.style.opacity = "0";
-      if (raf.current) {
-        cancelAnimationFrame(raf.current);
-        raf.current = null;
-      }
-      return;
-    }
-
-    const dot = dotRef.current!;
-    const ringEl = ringRef.current!;
-
-    // ✅ 初始化到屏幕中心，避免“系统鼠标隐藏后啥都看不到”
-    pos.current.x = window.innerWidth / 2;
-    pos.current.y = window.innerHeight / 2;
-    ring.current.x = pos.current.x;
-    ring.current.y = pos.current.y;
-
-    dot.style.opacity = "1";
-    ringEl.style.opacity = "1";
-
-    const move = (e: MouseEvent) => {
-      pos.current.x = e.clientX;
-      pos.current.y = e.clientY;
-    };
-
-    const down = () => setIsDown(true);
-    const up = () => setIsDown(false);
-
-    const onOver = (e: MouseEvent) => {
-      const t = e.target as HTMLElement | null;
-      if (!t) return;
-      if (t.closest("a,button,[role='button'],input,textarea,select,label")) {
-        setIsHover(true);
-      }
-    };
-    const onOut = () => setIsHover(false);
-
-    window.addEventListener("mousemove", move, { passive: true });
-    window.addEventListener("mousedown", down);
-    window.addEventListener("mouseup", up);
-    window.addEventListener("mouseover", onOver);
-    window.addEventListener("mouseout", onOut);
-
-    const tick = () => {
-      const dx = pos.current.x - ring.current.x;
-      const dy = pos.current.y - ring.current.y;
-      ring.current.x += dx * 0.12;
-      ring.current.y += dy * 0.12;
-
-      dot.style.transform = `translate3d(${pos.current.x}px, ${pos.current.y}px, 0)`;
-      ringEl.style.transform = `translate3d(${ring.current.x}px, ${ring.current.y}px, 0)`;
-
-      raf.current = requestAnimationFrame(tick);
-    };
-
-    raf.current = requestAnimationFrame(tick);
-
-    return () => {
-      window.removeEventListener("mousemove", move);
-      window.removeEventListener("mousedown", down);
-      window.removeEventListener("mouseup", up);
-      window.removeEventListener("mouseover", onOver);
-      window.removeEventListener("mouseout", onOut);
-      if (raf.current) cancelAnimationFrame(raf.current);
-      raf.current = null;
-    };
-  }, [enabled, isTouch]);
-
-  if (isTouch) return null;
-
-  return (
-    <>
-      <div
-        ref={ringRef}
-        className={[
-          "fixed left-0 top-0 z-[2147483647] pointer-events-none",
-          "w-10 h-10 -translate-x-1/2 -translate-y-1/2 rounded-full",
-          "border border-white/70",
-          "opacity-100 transition-[width,height,opacity,border-color,transform] duration-200",
-          isHover ? "w-14 h-14 border-white" : "",
-          isDown ? "w-20 h-20 border-white/80" : "",
-        ].join(" ")}
-        style={{ mixBlendMode: "screen", backdropFilter: "blur(2px)" }}
-      />
-
-      <div
-        ref={dotRef}
-        className={[
-          "fixed left-0 top-0 z-[2147483647] pointer-events-none",
-          "w-2.5 h-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full",
-          "bg-white",
-          "opacity-100 transition-[opacity,transform] duration-100",
-          isHover ? "scale-150" : "",
-          isDown ? "scale-75" : "",
-        ].join(" ")}
-        style={{ mixBlendMode: "screen" }}
-      />
-    </>
-  );
+  return null;
 }
+
 
