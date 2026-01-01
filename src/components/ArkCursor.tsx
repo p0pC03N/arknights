@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 
-type Props = {
-  defaultEnabled?: boolean;
-};
+type Props = { defaultEnabled?: boolean };
 
 export default function ArkCursor({ defaultEnabled = true }: Props) {
   const [enabled, setEnabled] = useState(defaultEnabled);
@@ -25,6 +23,8 @@ export default function ArkCursor({ defaultEnabled = true }: Props) {
 
     setIsTouch(!!touch);
     if (touch) setEnabled(false);
+
+    console.log("[ArkCursor] mounted");
   }, []);
 
   useEffect(() => {
@@ -41,18 +41,18 @@ export default function ArkCursor({ defaultEnabled = true }: Props) {
     const dot = dotRef.current!;
     const ringEl = ringRef.current!;
 
+    // ✅ 初始化到屏幕中心，避免“系统鼠标隐藏后啥都看不到”
+    pos.current.x = window.innerWidth / 2;
+    pos.current.y = window.innerHeight / 2;
+    ring.current.x = pos.current.x;
+    ring.current.y = pos.current.y;
+
+    dot.style.opacity = "1";
+    ringEl.style.opacity = "1";
+
     const move = (e: MouseEvent) => {
       pos.current.x = e.clientX;
       pos.current.y = e.clientY;
-
-      // ✅ 第一次移动时把拖尾位置也初始化到当前位置
-      if (ring.current.x === 0 && ring.current.y === 0) {
-        ring.current.x = e.clientX;
-        ring.current.y = e.clientY;
-      }
-
-      dot.style.opacity = "1";
-      ringEl.style.opacity = "1";
     };
 
     const down = () => setIsDown(true);
@@ -98,14 +98,6 @@ export default function ArkCursor({ defaultEnabled = true }: Props) {
     };
   }, [enabled, isTouch]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey && (e.key === "m" || e.key === "M")) setEnabled((v) => !v);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
   if (isTouch) return null;
 
   return (
@@ -113,26 +105,23 @@ export default function ArkCursor({ defaultEnabled = true }: Props) {
       <div
         ref={ringRef}
         className={[
-          "fixed left-0 top-0 z-[9999] pointer-events-none",
+          "fixed left-0 top-0 z-[2147483647] pointer-events-none",
           "w-10 h-10 -translate-x-1/2 -translate-y-1/2 rounded-full",
-          "border border-white/60",
-          "opacity-0 transition-[width,height,opacity,border-color,transform] duration-200",
+          "border border-white/70",
+          "opacity-100 transition-[width,height,opacity,border-color,transform] duration-200",
           isHover ? "w-14 h-14 border-white" : "",
           isDown ? "w-20 h-20 border-white/80" : "",
         ].join(" ")}
-        style={{
-          mixBlendMode: "screen",
-          backdropFilter: "blur(2px)",
-        }}
+        style={{ mixBlendMode: "screen", backdropFilter: "blur(2px)" }}
       />
 
       <div
         ref={dotRef}
         className={[
-          "fixed left-0 top-0 z-[9999] pointer-events-none",
+          "fixed left-0 top-0 z-[2147483647] pointer-events-none",
           "w-2.5 h-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full",
           "bg-white",
-          "opacity-0 transition-[opacity,transform] duration-100",
+          "opacity-100 transition-[opacity,transform] duration-100",
           isHover ? "scale-150" : "",
           isDown ? "scale-75" : "",
         ].join(" ")}
