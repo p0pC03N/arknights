@@ -3,17 +3,10 @@ import DocsLayout from "../../layouts/DocsLayout.astro"
 import {IconArrow} from "../../components/SvgIcons"
 ---
 
-<DocsLayout title="首页">
-    <article class="h-full flex flex-col justify-center">
-        <h1 class="font-benderBold">Astro Arknights 文档</h1>
-        <p class="font-benderRegular">指南、资源和 API 参考，帮助你使用 Astro 进行构建。</p>
-        <a target="_self" href="./用户文档/项目介绍"
-           class="w-[18rem] h-[4.8rem] text-inherit no-underline hover:text-black hover:bg-ark-blue bg-[#5a5a5a] px-[2.5rem] flex items-center justify-between cursor-pointer transition-[color,background-color] duration-300">
-            <div>
-                <div class="text-[1.6rem] font-bold">开始使用</div>
-                <div class="text-[1rem] font-benderBold">Getting Started</div>
-            </div>
-            <IconArrow className="w-2 pointer-events-none"/>
-        </a>
-    </article>
+<DocsLayout title="文档">
+  <article class="h-full flex items-center justify-center">
+    <h1 class="font-benderBold text-4xl">
+      文档
+    </h1>
+  </article>
 </DocsLayout>
