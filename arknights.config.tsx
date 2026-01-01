@@ -1,3 +1,4 @@
+import React from "react";
 import type { ArknightsConfig } from "./src/_types/ArknightsConfig";
 import { CopyrightMini, IconArchive, IconGitHub, TitleArknights } from "./src/components/SvgIcons";
 
@@ -9,7 +10,7 @@ const config: ArknightsConfig = {
   language: "zh",
 
   bgm: {
-    autoplay: false,
+    autoplay: false, // 想“尽量自动”就改 true（但浏览器仍要求首次交互）
     src: base + "audios/bgm.mp3",
   },
 
@@ -65,7 +66,12 @@ const config: ArknightsConfig = {
         },
         {
           icon: (
-            <svg className="w-full h-auto pointer-events-none" fillRule="evenodd" fill="currentColor" viewBox="0 0 1024 1024">
+            <svg
+              className="w-full h-auto pointer-events-none"
+              fillRule="evenodd"
+              fill="currentColor"
+              viewBox="0 0 1024 1024"
+            >
               <path d="M856.874667 448l51.285333 30.762667a21.333333 21.333333 0 0 1 0 36.608L512 753.066667l-396.16-237.696a21.333333 21.333333 0 0 1 0-36.608l51.285333-30.762667L512 654.933333l344.874667-206.933333z m0 200.533333l51.285333 30.762667a21.333333 21.333333 0 0 1 0 36.608l-374.186667 224.512a42.666667 42.666667 0 0 1-43.946666 0l-374.186667-224.512a21.333333 21.333333 0 0 1 0-36.608l51.285333-30.762667L512 855.466667l344.874667-206.933334zM533.930667 55.850667l374.229333 224.512a21.333333 21.333333 0 0 1 0 36.608L512 554.666667 115.84 316.970667a21.333333 21.333333 0 0 1 0-36.608l374.186667-224.512a42.666667 42.666667 0 0 1 43.946666 0z" />
             </svg>
           ),
@@ -148,6 +154,7 @@ const config: ArknightsConfig = {
 };
 
 export default config;
+
 
 
 export default config;
