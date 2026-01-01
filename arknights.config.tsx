@@ -154,7 +154,3 @@ const config: ArknightsConfig = {
 };
 
 export default config;
-
-
-
-export default config;
