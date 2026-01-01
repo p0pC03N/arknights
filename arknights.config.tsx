@@ -9,7 +9,7 @@ export default {
     description: "一个退游博士的个人博客",
     language: "zh",
     bgm: {
-        autoplay: false,
+        autoplay: ture,
 
         // https://web.hycdn.cn/arknights/official/_next/static/media/audio/bgm.ea4286.mp3
         src: base + "audios/bgm.mp3"
