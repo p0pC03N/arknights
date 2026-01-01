@@ -28,23 +28,14 @@ const config: ArknightsConfig = {
       { title: "MORE", subtitle: "更多内容", href: base + "#more" },
     ],
 
-    // ✅ 如果你坚持只留 Email/GitHub：下面这块会导致类型检查报错（你日志里已经报了）
-    // ✅ 解决方式：要么补齐字段，要么去改组件解构（我更推荐补齐字段，最快让 Actions 绿）
     toolbox: {
       Email: "mailto:1433209484@qq.com",
       GitHub: "https://github.com/p0pC03N/arknights",
-
-      // 下面这些你可以随便填自己想放的链接；不想显示再去组件里改“条件渲染”
-      Skland: "https://www.skland.com/",
-      Bilibili: "https://space.bilibili.com/28606851",
-      WeChat: "https://weixin.qq.com/",
-      Weibo: "https://weibo.com/",
-      TapTap: "https://www.taptap.cn/",
     },
 
     ownerInfo: {
       name: "p0pC03N",
-      slogan: "事在人为",
+      slogan: "Cause you and I,we are born to die",
       footerLinks: [
         { label: "GitHub", url: "https://github.com/p0pC03N" },
         { label: "Email", url: "mailto:1433209484@qq.com" },
@@ -126,12 +117,10 @@ const config: ArknightsConfig = {
       },
     },
 
-    // ✅ 你的友链应该放在 rootPage 里面（和 INDEX/INFORMATION/WORLD 同级）
     OPERATOR: {
       friendLinks: [
         {
           name: "xiexie",
-          // ✅ URL 必须带 https:// 否则点击可能出错/被当相对路径
           url: "https://xiexie-qiuligao.github.io",
           desc: "长发快乐男（本人如是说）",
           avatar: "/images/friends/xiexie_friendlink.png",
@@ -157,5 +146,8 @@ const config: ArknightsConfig = {
     },
   },
 };
+
+export default config;
+
 
 export default config;
