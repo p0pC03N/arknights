@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+@media (pointer: fine) {
+  body {
+    cursor: none;
+  }
+}
 @layer utilities {
     .text-balance {
         text-wrap: balance;
