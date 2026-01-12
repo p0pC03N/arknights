@@ -36,5 +36,48 @@ const { lang, title, description, subNavigationItems } = Astro.props as Props;
     <Scrollbar />
     <ResponsiveFontSize />
 
-    <!-- ✅ 新鼠标实现：arknights-cursor（注意用 base，兼容 GitHub Pages 子路径） -->
-    <link rel="stylesheet" href={base + "effects/arknights-cursor/cursor
+    <!-- ✅ 新鼠标实现：arknights-cursor（用 base，兼容 GitHub Pages 子路径） -->
+    <link rel="stylesheet" href={base + "effects/arknights-cursor/cursor.css"} />
+
+    <!-- ✅ 背景尘埃 canvas 的最小样式（不挡点击，铺满全屏） -->
+    <style>
+      #canvas-dust{
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 0;
+      }
+      /* 让页面内容盖在尘埃层上面 */
+      .site-layer{
+        position: relative;
+        z-index: 1;
+      }
+    </style>
+  </head>
+
+  <body class="w-full h-full text-white bg-black m-0 overflow-hidden">
+    <!-- ✅ 背景尘埃：放 body 最前面 -->
+    <canvas id="canvas-dust" aria-hidden="true"></canvas>
+
+    <!-- ✅ 你原本的页面内容（加一层 site-layer 提升 z-index） -->
+    <div class="w-full h-full relative bg-layout bg-center bg-cover bg-no-repeat site-layer">
+      <div class="relative w-full h-full m-auto max-w-[180rem]">
+        <Header />
+        <slot />
+        <Menu client:only="react" {...{ subNavigationItems }} />
+        <ToolBox client:load />
+        <OwnerInfo client:load />
+      </div>
+    </div>
+
+    <SvgDefs />
+
+    <!-- ✅ 新鼠标实现：arknights-cursor -->
+    <script src={base + "effects/arknights-cursor/cursor.js"} defer></script>
+
+    <!-- ✅ 背景尘埃脚本（你要放到 public/effects/dust/dust.js） -->
+    <script src={base + "effects/dust/dust.js"} defer></script>
+  </body>
+</html>
