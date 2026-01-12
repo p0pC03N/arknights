@@ -31,29 +31,10 @@ const { lang, title, description, subNavigationItems } = Astro.props as Props;
     <meta name="generator" content={Astro.generator} />
     <base target="_blank" />
     <title>{title}</title>
+
     <FontFace />
     <Scrollbar />
     <ResponsiveFontSize />
 
-    <!-- ✅ arknights-cursor -->
-    <link rel="stylesheet" href="/effects/arknights-cursor/cursor.css" />
-  </head>
-
-  <body class="w-full h-full text-white bg-black m-0 overflow-hidden">
-    <div class="w-full h-full relative bg-layout bg-center bg-cover bg-no-repeat">
-      <div class="relative w-full h-full m-auto max-w-[180rem]">
-        <Header />
-        <slot />
-        <Menu client:only="react" {...{ subNavigationItems }} />
-        <ToolBox client:load />
-        <OwnerInfo client:load />
-      </div>
-    </div>
-
-    <SvgDefs />
-
-    <!-- ✅ arknights-cursor -->
-    <script src="/effects/arknights-cursor/cursor.js" defer></script>
-  </body>
-</html>
-
+    <!-- ✅ 新鼠标实现：arknights-cursor（注意用 base，兼容 GitHub Pages 子路径） -->
+    <link rel="stylesheet" href={base + "effects/arknights-cursor/cursor
