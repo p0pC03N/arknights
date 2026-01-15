@@ -45,9 +45,9 @@ const config: ArknightsConfig = {
   },
 
   pageTracker: {
-    microInfo: "ARKNIGHTS",
-    labels: ["HOMEPAGE", "INFORMATION", "OPERATOR", "WORLD", "ABOUT TERRA", "MORE"],
-  },
+  microInfo: "ARKNIGHTS",
+  labels: ["HOMEPAGE", "INFORMATION", "OPERATOR", "WORLD", "MEDIA", "MORE"],
+},
 
   rootPage: {
     INDEX: {
@@ -150,6 +150,28 @@ const config: ArknightsConfig = {
         { title: "罗德岛", subTitle: "RHODES ISLAND", imageUrl: "/images/03-world/rhodes_island.png", description: "罗德岛的描述..." },
       ],
     },
+
+      MEDIA: {
+    // 右侧固定一张图（像友链那样一直显示）
+    rightImage: base + "images/terra/right.jpg",
+
+    // 左侧 3/10 文章列表（你自己维护列表就行）
+    articles: [
+      {
+        title: "加密文档-01",
+        subTitle: "SECRET",
+        date: "2026 // 01 / 15",
+        href: base + "terra-omnia/secret-01",
+        locked: true,
+      },
+      {
+        title: "公开文档-02",
+        subTitle: "PUBLIC",
+        date: "2026 // 01 / 10",
+        href: base + "terra-omnia/public-02",
+        locked: false,
+      },
+    ],
   },
 };
 
