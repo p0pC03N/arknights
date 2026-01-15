@@ -28,3 +28,18 @@ export type SwiperData = {
     href: string,
     image?: string,
 }
+
+// 05-MEDIA ===========================
+
+export type TerraOmniaArticle = {
+  title: string
+  subTitle?: string
+  date?: string
+  href: string
+  locked?: boolean // 🔒 是否加密文章
+}
+
+export type TerraOmniaViewProps = {
+  rightImage: string            // 右侧固定图片（像友链那样一直显示）
+  articles: TerraOmniaArticle[] // 左侧 3/10 列表
+}
