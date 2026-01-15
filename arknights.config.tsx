@@ -25,7 +25,7 @@ const config: ArknightsConfig = {
       { title: "INFORMATION", subtitle: "情报", href: base + "#information" },
       { title: "OPERATOR", subtitle: "干员", href: base + "#operator" },
       { title: "WORLD", subtitle: "设定", href: base + "#world" },
-      { title: "MEDIA", subtitle: "泰拉万象", href: base + "#media" },
+      { title: "MEDIA", subtitle: "泰拉万象", href: base + "terra-omnia/" },
       { title: "MORE", subtitle: "更多内容", href: base + "#more" },
     ],
 
