@@ -1,64 +1,13 @@
-import React from "react"
-import type { AutoplayOptions } from "swiper/types";
-import type { HeroActionButtonProps, SwiperData } from "./RootPageViews.ts"
-
-export type NavbarItem = {
+export type TerraOmniaArticle = {
   title: string
-  subtitle: string
+  subTitle?: string
+  date?: string
   href: string
-}
-
-export type OwnerInfoFooterLink = {
-  label: string,
-  url: string,
-  portraitHidden?: boolean
-}
-
-export type FriendLink = {
-  name: string
-  url: string
-  desc?: string
-  avatar?: string
+  locked?: boolean   // 🔒 是否加密
 }
 
 export type ArknightsConfig = {
-  title: string
-  description: string
-  language: string
-
-  bgm: {
-    autoplay: boolean
-    src: string
-  }
-
-  navbar: {
-    logo: {
-      element: () => React.JSX.Element
-      alt: string
-    }
-    items: NavbarItem[]
-    toolbox: {
-      Skland?: string
-      Bilibili?: string
-      WeChat?: string
-      Weibo?: string
-      TapTap?: string
-      GitHub?: string
-
-      // ✅ 你要加邮箱就加这个
-      Email?: string
-    }
-    ownerInfo: {
-      name?: string
-      slogan?: string
-      footerLinks?: OwnerInfoFooterLink[]
-    }
-  }
-
-  pageTracker: {
-    microInfo: string
-    labels: string[]
-  }
+  // ...前面不动
 
   rootPage: {
     INDEX: {
@@ -76,7 +25,6 @@ export type ArknightsConfig = {
       }
     },
 
-    // ✅ 新增：干员页（用来挂友链数据）
     OPERATOR?: {
       friendLinks?: FriendLink[]
     },
@@ -88,6 +36,12 @@ export type ArknightsConfig = {
         imageUrl: string,
         description: string,
       }[]
+    },
+
+    // ✅ 新增：MEDIA（泰拉万象）
+    MEDIA?: {
+      rightImage: string            // 右侧固定一张图（像友链那样）
+      articles: TerraOmniaArticle[] // 左侧 3/10 列表
     }
   }
 }
