@@ -1,9 +1,9 @@
 ---
-const posts = [
-  { title: "加密文档-01", href: "/terra-omnia/secret-01", locked: true, date: "2026-01-15" },
-  { title: "公开文档-02", href: "/terra-omnia/public-02", locked: false, date: "2026-01-10" },
-];
-const rightImage = "/images/terra/right.jpg"; // 右侧固定图片
+import arknightsConfig from "../../../arknights.config";
+
+// 从 arknights.config.tsx 读取 MEDIA 配置（没有就给默认值）
+const posts = arknightsConfig.rootPage.MEDIA?.articles ?? [];
+const rightImage = arknightsConfig.rootPage.MEDIA?.rightImage ?? "/images/terra/right.jpg";
 ---
 
 <div class="terra">
@@ -11,15 +11,22 @@ const rightImage = "/images/terra/right.jpg"; // 右侧固定图片
     <h2 class="title">泰拉万象</h2>
 
     <nav class="list">
-      {posts.map(p => (
-        <a class="item" href={p.href}>
-          <div class="row">
-            <span class="name">{p.title}</span>
-            <span class="badge">{p.locked ? "🔒" : "📰"}</span>
-          </div>
-          <div class="meta">{p.date}</div>
-        </a>
-      ))}
+      {posts.length === 0 ? (
+        <div class="empty">还没有内容：请在 arknights.config.tsx 里添加 rootPage.MEDIA.articles</div>
+      ) : (
+        posts.map((p) => (
+          <a class="item" href={p.href}>
+            <div class="row">
+              <span class="name">
+                {p.title}
+                {p.subTitle ? <span class="sub"> · {p.subTitle}</span> : null}
+              </span>
+              <span class="badge">{p.locked ? "🔒" : "📰"}</span>
+            </div>
+            <div class="meta">{p.date ?? ""}</div>
+          </a>
+        ))
+      )}
     </nav>
   </aside>
 
@@ -46,6 +53,7 @@ const rightImage = "/images/terra/right.jpg"; // 右侧固定图片
     border-radius: 18px;
     padding: 14px;
     background: rgba(0,0,0,0.15);
+    backdrop-filter: blur(6px);
   }
 
   .title{
@@ -61,6 +69,14 @@ const rightImage = "/images/terra/right.jpg"; // 右侧固定图片
     overflow: auto;
     height: calc(100% - 42px);
     padding-right: 6px;
+  }
+
+  .empty{
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px dashed rgba(255,255,255,0.18);
+    opacity: 0.75;
+    font-size: 14px;
   }
 
   .item{
@@ -87,6 +103,10 @@ const rightImage = "/images/terra/right.jpg"; // 右侧固定图片
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .sub{
+    opacity: 0.7;
+    font-weight: 500;
+  }
   .badge{ opacity: 0.9; }
 
   .meta{
@@ -104,6 +124,7 @@ const rightImage = "/images/terra/right.jpg"; // 右侧固定图片
     position: sticky;
     top: 18px;
     background: rgba(0,0,0,0.15);
+    backdrop-filter: blur(6px);
   }
   .hero{
     width: 100%;
