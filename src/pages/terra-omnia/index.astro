@@ -1,0 +1,121 @@
+---
+const posts = [
+  { title: "加密文档-01", href: "/terra-omnia/secret-01", locked: true, date: "2026-01-15" },
+  { title: "公开文档-02", href: "/terra-omnia/public-02", locked: false, date: "2026-01-10" },
+];
+const rightImage = "/images/terra/right.jpg"; // 右侧固定图片
+---
+
+<div class="terra">
+  <aside class="left">
+    <h2 class="title">泰拉万象</h2>
+
+    <nav class="list">
+      {posts.map(p => (
+        <a class="item" href={p.href}>
+          <div class="row">
+            <span class="name">{p.title}</span>
+            <span class="badge">{p.locked ? "🔒" : "📰"}</span>
+          </div>
+          <div class="meta">{p.date}</div>
+        </a>
+      ))}
+    </nav>
+  </aside>
+
+  <section class="right">
+    <img class="hero" src={rightImage} alt="Terra Omnia" loading="lazy" />
+  </section>
+</div>
+
+<style>
+  .terra{
+    display:grid;
+    grid-template-columns: 30% 70%;
+    gap: 18px;
+    align-items: start;
+  }
+
+  /* 左侧占 3/10 */
+  .left{
+    position: sticky;
+    top: 18px;
+    height: calc(100vh - 36px);
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 18px;
+    padding: 14px;
+    background: rgba(0,0,0,0.15);
+  }
+
+  .title{
+    margin: 4px 4px 12px 4px;
+    font-size: 18px;
+  }
+
+  /* 左侧列表可滚动 */
+  .list{
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: auto;
+    height: calc(100% - 42px);
+    padding-right: 6px;
+  }
+
+  .item{
+    text-decoration: none;
+    color: inherit;
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.03);
+  }
+  .item:hover{
+    background: rgba(255,255,255,0.06);
+  }
+
+  .row{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .name{
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .badge{ opacity: 0.9; }
+
+  .meta{
+    margin-top: 6px;
+    font-size: 12px;
+    opacity: 0.7;
+  }
+
+  /* 右侧固定一张图：一直显示 */
+  .right{
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 18px;
+    overflow: hidden;
+    height: calc(100vh - 36px);
+    position: sticky;
+    top: 18px;
+    background: rgba(0,0,0,0.15);
+  }
+  .hero{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display:block;
+  }
+
+  /* 小屏适配：上下排列 */
+  @media (max-width: 900px){
+    .terra{ grid-template-columns: 1fr; }
+    .left, .right{ position: static; height: auto; }
+    .right{ height: 50vh; }
+  }
+</style>
