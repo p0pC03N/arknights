@@ -45,9 +45,9 @@ const config: ArknightsConfig = {
   },
 
   pageTracker: {
-  microInfo: "ARKNIGHTS",
-  labels: ["HOMEPAGE", "INFORMATION", "OPERATOR", "WORLD", "MEDIA", "MORE"],
-},
+    microInfo: "ARKNIGHTS",
+    labels: ["HOMEPAGE", "INFORMATION", "OPERATOR", "WORLD", "MEDIA", "MORE"],
+  },
 
   rootPage: {
     INDEX: {
@@ -66,12 +66,7 @@ const config: ArknightsConfig = {
         },
         {
           icon: (
-            <svg
-              className="w-full h-auto pointer-events-none"
-              fillRule="evenodd"
-              fill="currentColor"
-              viewBox="0 0 1024 1024"
-            >
+            <svg className="w-full h-auto pointer-events-none" fillRule="evenodd" fill="currentColor" viewBox="0 0 1024 1024">
               <path d="M856.874667 448l51.285333 30.762667a21.333333 21.333333 0 0 1 0 36.608L512 753.066667l-396.16-237.696a21.333333 21.333333 0 0 1 0-36.608l51.285333-30.762667L512 654.933333l344.874667-206.933333z m0 200.533333l51.285333 30.762667a21.333333 21.333333 0 0 1 0 36.608l-374.186667 224.512a42.666667 42.666667 0 0 1-43.946666 0l-374.186667-224.512a21.333333 21.333333 0 0 1 0-36.608l51.285333-30.762667L512 855.466667l344.874667-206.933334zM533.930667 55.850667l374.229333 224.512a21.333333 21.333333 0 0 1 0 36.608L512 554.666667 115.84 316.970667a21.333333 21.333333 0 0 1 0-36.608l374.186667-224.512a42.666667 42.666667 0 0 1 43.946666 0z" />
             </svg>
           ),
@@ -151,28 +146,29 @@ const config: ArknightsConfig = {
       ],
     },
 
-      MEDIA: {
-    // 右侧固定一张图（像友链那样一直显示）
-    rightImage: base + "images/terra/right.jpg",
+    MEDIA: {
+      // 右侧固定一张图（像友链那样一直显示）
+      rightImage: base + "images/terra/right.jpg",
 
-    // 左侧 3/10 文章列表（你自己维护列表就行）
-    articles: [
-      {
-        title: "加密文档-01",
-        subTitle: "SECRET",
-        date: "2026 // 01 / 15",
-        href: base + "terra-omnia/secret-01",
-        locked: true,
-      },
-      {
-        title: "公开文档-02",
-        subTitle: "PUBLIC",
-        date: "2026 // 01 / 10",
-        href: base + "terra-omnia/public-02",
-        locked: false,
-      },
-    ],
-  },
+      // 左侧 3/10 文章列表（你自己维护列表就行）
+      articles: [
+        {
+          title: "加密文档-01",
+          subTitle: "SECRET",
+          date: "2026 // 01 / 15",
+          href: base + "terra-omnia/secret-01",
+          locked: true,
+        },
+        {
+          title: "公开文档-02",
+          subTitle: "PUBLIC",
+          date: "2026 // 01 / 10",
+          href: base + "terra-omnia/public-02",
+          locked: false,
+        },
+      ],
+    },
+  }, // ✅ 这里才是 rootPage 的结束
 };
 
 export default config;
