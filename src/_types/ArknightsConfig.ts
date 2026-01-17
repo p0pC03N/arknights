@@ -28,6 +28,9 @@ export type TerraOmniaArticle = {
   date?: string;
   href: string;
   locked?: boolean; // 🔒 是否加密
+  secretId?: string; // 🔒 对应 src/content/secret/<id>.payload.json 的 <id>
+  keyHint?: string;  // 🔒 输入框提示文案（例如“提示：Xi3xi3”）
+  rememberKey?: string; // 🔒 localStorage 的 key（不同文档可用不同 key）
 };
 
 export type ArknightsConfig = {
@@ -106,3 +109,4 @@ export type ArknightsConfig = {
     };
   };
 };
+
