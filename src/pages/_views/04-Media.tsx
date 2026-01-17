@@ -48,19 +48,28 @@ export default function Media() {
   async function onDecrypt(a: any) {
     const id = getArticleId(a);
     const pw = pwMap[id] ?? "";
-    if (!pw) return; // 如果没有输入密码，则不进行解密
+    console.log(`Attempting to decrypt id: ${id}, password: ${pw}`); // 调试：查看密码
+
+    if (!pw) {
+      console.log("No password provided");
+      return; // 如果没有输入密码，则不进行解密
+    }
 
     setAuthState((s) => ({ ...s, [id]: "loading" }));
 
     try {
       const payload = a.locked ? await import(`${base}src/content/secret/${id}.payload.json`) : null;
       if (!payload) throw new Error("No payload");
+      console.log(`Payload for ${id}:`, payload); // 调试：确认 payload 是否加载成功
 
       // 使用导出的解密函数进行解密
       const html = await decryptEncryptedPayload(payload, pw);
+      console.log(`Decrypted HTML for ${id}:`, html); // 调试：确认解密结果
+
       setHtmlById((prev) => ({ ...prev, [id]: html }));
       setAuthState((s) => ({ ...s, [id]: "ok" }));
     } catch (e) {
+      console.error("Decryption error:", e); // 调试：打印解密错误
       setHtmlById((prev) => ({ ...prev, [id]: "" }));
       setAuthState((s) => ({ ...s, [id]: "bad" }));
     }
