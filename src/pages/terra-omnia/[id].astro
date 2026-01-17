@@ -2,16 +2,13 @@
 import DocsLayout from "../../layouts/DocsLayout.astro";
 import EncryptedArticle from "../../components/EncryptedArticle";
 
-// 用函数包装，避免 getStaticPaths 被提取/重排后拿不到变量（函数声明会被提升）
-function loadPayloadModules() {
-  return import.meta.glob<{ default: any }>(
+export async function getStaticPaths() {
+  // ✅ 不依赖外部变量/函数，避免编译重排导致未定义
+  const payloadModules = import.meta.glob<{ default: any }>(
     "/src/content/secret/*.payload.json",
     { eager: true }
   );
-}
 
-export async function getStaticPaths() {
-  const payloadModules = loadPayloadModules();
   return Object.keys(payloadModules).map((p) => {
     const file = p.split("/").pop() ?? "";
     const id = file.replace(/\.payload\.json$/i, "");
@@ -20,12 +17,19 @@ export async function getStaticPaths() {
 }
 
 const { id } = Astro.params;
-const payloadModules = loadPayloadModules();
-const mod = Object.entries(payloadModules).find(([p]) =>
-  (p.split("/").pop() ?? "").startsWith(id + ".payload")
-);
-const payload = mod?.[1]?.default;
 
+// 这里给页面渲染用，可以再 glob 一次（不影响构建性能，文件量很小）
+const payloadModules = import.meta.glob<{ default: any }>(
+  "/src/content/secret/*.payload.json",
+  { eager: true }
+);
+
+const entry = Object.entries(payloadModules).find(([p]) => {
+  const file = p.split("/").pop() ?? "";
+  return file === `${id}.payload.json`;
+});
+
+const payload = entry?.[1]?.default;
 const title = id ?? "加密文档";
 const headings: any[] = [];
 ---
@@ -37,7 +41,7 @@ const headings: any[] = [];
     ) : (
       <article>
         <h2>未找到加密文档</h2>
-        <p>请确认是否存在：<code>src/content/secret/{id}.payload.json</code></p>
+        <p>请确认存在：<code>src/content/secret/{id}.payload.json</code></p>
       </article>
     )
   }
