@@ -155,7 +155,7 @@ const config: ArknightsConfig = {
         {
           title: "加密文档-01",
           subTitle: "SECRET",
-          date: "2026 // 01 / 15",
+          date: "2026 // 01 / 18",
           href: base + "terra-omnia/secret-01",
           locked: true,
         },
