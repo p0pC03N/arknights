@@ -2,22 +2,28 @@
 import DocsLayout from "../../layouts/DocsLayout.astro";
 import EncryptedArticle from "../../components/EncryptedArticle";
 
-// 读取你现有脚本产出的 payload：src/content/secret/<id>.payload.json
-const payloadModules = import.meta.glob<{
-  default: any;
-}>("/src/content/secret/*.payload.json", { eager: true });
+// 用函数包装，避免 getStaticPaths 被提取/重排后拿不到变量（函数声明会被提升）
+function loadPayloadModules() {
+  return import.meta.glob<{ default: any }>(
+    "/src/content/secret/*.payload.json",
+    { eager: true }
+  );
+}
 
 export async function getStaticPaths() {
-  const paths = Object.keys(payloadModules).map((p) => {
+  const payloadModules = loadPayloadModules();
+  return Object.keys(payloadModules).map((p) => {
     const file = p.split("/").pop() ?? "";
     const id = file.replace(/\.payload\.json$/i, "");
     return { params: { id } };
   });
-  return paths;
 }
 
 const { id } = Astro.params;
-const mod = Object.entries(payloadModules).find(([p]) => (p.split("/").pop() ?? "").startsWith(id + ".payload"));
+const payloadModules = loadPayloadModules();
+const mod = Object.entries(payloadModules).find(([p]) =>
+  (p.split("/").pop() ?? "").startsWith(id + ".payload")
+);
 const payload = mod?.[1]?.default;
 
 const title = id ?? "加密文档";
@@ -27,7 +33,6 @@ const headings: any[] = [];
 <DocsLayout title={title} headings={headings}>
   {
     payload ? (
-      // 说明：解密逻辑完全复用你现成的 EncryptedArticle + encrypt-doc.mjs 产出格式
       <EncryptedArticle client:load payload={payload} autoDecrypt={true} />
     ) : (
       <article>
@@ -37,3 +42,4 @@ const headings: any[] = [];
     )
   }
 </DocsLayout>
+
