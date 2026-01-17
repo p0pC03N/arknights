@@ -9,6 +9,7 @@ export default function Media() {
   const $viewIndex = useStore(viewIndex);
   const $readyToTouch = useStore(readyToTouch);
   const [active, setActive] = useState(false);
+  const [pwMap, setPwMap] = useState<Record<string, string>>({});
 
   // ✅ 兼容 GitHub Pages 子路径
   const base = import.meta.env.BASE_URL;
@@ -24,6 +25,15 @@ export default function Media() {
 
   // ✅ 左侧文章列表
   const articles = useMemo(() => media?.articles ?? [], [media]);
+
+  function getArticleId(a: any) {
+    // 优先用 config 显式指定的 secretId
+    if (a?.secretId) return String(a.secretId);
+    // 否则从 href 最后一个段落推断（例如 /terra-omnia/f03_u）
+    const href = String(a?.href ?? "");
+    const seg = href.split("?")[0].split("#")[0].split("/").filter(Boolean).pop();
+    return seg || "unknown";
+  }
 
   useEffect(() => {
     const isActive = $viewIndex === 4 && $readyToTouch;
@@ -81,29 +91,86 @@ export default function Media() {
                     <code className="text-white/90"> rootPage.MEDIA.articles</code>。
                   </div>
                 ) : (
-                  articles.map((a, idx) => (
+                  articles.map((a, idx) => {
+                    const id = getArticleId(a);
+                    const locked = !!a.locked;
+                    const rememberKey = a.rememberKey || `enc_doc_pw:${id}`;
+                    const hint = a.keyHint || "请输入密钥";
+                    const pw = pwMap[id] ?? "";
+
+                    return (
                     <a
                       key={`${a.href}-${idx}`}
                       href={a.href}
-                      className="block rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+                      className="group block rounded-xl border border-white/10 hover:border-white/30 bg-black/30 p-4 transition"
+                      onClick={(e) => {
+                        if (!locked) return;
+                        // 加密条目：如果还没输入密码，则阻止跳转（让用户先输入）
+                        let stored = "";
+                        try { stored = localStorage.getItem(rememberKey) ?? ""; } catch {}
+                        const usingPw = pw || stored;
+                        if (!usingPw) {
+                          e.preventDefault();
+                          return;
+                        }
+                        // 有密码就写入并跳转（解密在目标页面完成）
+                        try { localStorage.setItem(rememberKey, usingPw); } catch {}
+                      }}
                     >
-                      <div className="p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="font-semibold text-white truncate">
-                              {a.title}
-                              {a.subTitle ? <span className="text-white/70"> · {a.subTitle}</span> : null}
-                            </div>
-                            {a.date ? <div className="text-xs text-white/60 mt-1">{a.date}</div> : null}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-white truncate">
+                            {a.title}
+                            {a.subTitle ? <span className="text-white/70"> · {a.subTitle}</span> : null}
                           </div>
+                          {a.date ? <div className="text-xs text-white/60 mt-1">{a.date}</div> : null}
+                        </div>
 
-                          <div className="shrink-0 text-lg" title={a.locked ? "加密文档" : "公开内容"}>
-                            {a.locked ? "🔒" : "📰"}
-                          </div>
+                        <div className="shrink-0 text-lg" title={locked ? "加密文档" : "公开内容"}>
+                          {locked ? "🔒" : "📰"}
                         </div>
                       </div>
+
+                      {/* 🔒 hover 往下伸展：输入密钥 */}
+                      {locked ? (
+                        <div className="overflow-hidden max-h-0 group-hover:max-h-28 transition-[max-height] duration-300">
+                          <div className="pt-3">
+                            <div className="text-xs text-white/70 mb-2">{hint}</div>
+                            <div className="flex gap-2 items-center">
+                              <input
+                                type="password"
+                                value={pw}
+                                onChange={(ev) => setPwMap((m) => ({ ...m, [id]: ev.target.value }))}
+                                placeholder={hint}
+                                className="flex-1 px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white outline-none focus:border-white/30"
+                                onKeyDown={(ev) => {
+                                  if (ev.key !== "Enter") return;
+                                  ev.preventDefault();
+                                  const val = (pwMap[id] ?? "").trim();
+                                  if (!val) return;
+                                  try { localStorage.setItem(rememberKey, val); } catch {}
+                                  window.location.href = String(a.href);
+                                }}
+                              />
+                              <button
+                                type="button"
+                                className="px-3 py-2 rounded-lg border border-white/10 hover:border-white/30 bg-white/5 text-white text-sm"
+                                onClick={(ev) => {
+                                  ev.preventDefault();
+                                  const val = (pwMap[id] ?? "").trim();
+                                  if (!val) return;
+                                  try { localStorage.setItem(rememberKey, val); } catch {}
+                                  window.location.href = String(a.href);
+                                }}
+                              >
+                                打开
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
                     </a>
-                  ))
+                  )})
                 )}
               </nav>
             </aside>
