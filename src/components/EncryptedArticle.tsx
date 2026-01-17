@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 
-type EncryptedPayload = {
+export type EncryptedPayload = {
   v: 1;
   algo: "AES-GCM";
   iter: number;
@@ -9,14 +9,14 @@ type EncryptedPayload = {
   ct_b64: string;
 };
 
-function b64ToU8(b64: string): Uint8Array {
+export function b64ToU8(b64: string): Uint8Array {
   const bin = atob(b64);
   const u8 = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
   return u8;
 }
 
-async function deriveKey(password: string, salt: Uint8Array, iter: number) {
+export async function deriveKey(password: string, salt: Uint8Array, iter: number) {
   const enc = new TextEncoder();
   const baseKey = await crypto.subtle.importKey(
     "raw",
@@ -35,7 +35,16 @@ async function deriveKey(password: string, salt: Uint8Array, iter: number) {
   );
 }
 
-async function decryptPayload(payload: EncryptedPayload, password: string): Promise<string> {
+/**
+ * ✅ 新增：对外导出解密函数（用于“泰拉万象页内验证密码/解密内容”）
+ * - 不改 payload 结构、不改算法
+ * - 解密成功返回明文字符串（通常是 HTML）
+ * - 解密失败会 throw（调用方用 try/catch 显示“未授权”）
+ */
+export async function decryptEncryptedPayload(
+  payload: EncryptedPayload,
+  password: string
+): Promise<string> {
   const salt = b64ToU8(payload.salt_b64);
   const iv = b64ToU8(payload.iv_b64);
   const ct = b64ToU8(payload.ct_b64);
@@ -58,12 +67,17 @@ export default function EncryptedArticle(props: {
   const [loading, setLoading] = useState(false);
 
   const storedPw = useMemo(() => {
-    try { return localStorage.getItem(rememberKey) ?? ""; } catch { return ""; }
+    try {
+      return localStorage.getItem(rememberKey) ?? "";
+    } catch {
+      return "";
+    }
   }, [rememberKey]);
 
   // 可选：自动填充已记住的密码
   React.useEffect(() => {
     if (!pw && storedPw) setPw(storedPw);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storedPw]);
 
   // 可选：当密码已有值时自动解密
@@ -80,13 +94,17 @@ export default function EncryptedArticle(props: {
     setErr(null);
     setLoading(true);
     try {
-      const out = await decryptPayload(payload, pw);
+      const out = await decryptEncryptedPayload(payload, pw); // ✅ 改为调用导出函数
       setHtml(out);
-      try { localStorage.setItem(rememberKey, pw); } catch {}
+      try {
+        localStorage.setItem(rememberKey, pw);
+      } catch {}
     } catch (e) {
       setErr("密码不对或内容已损坏");
       setHtml(null);
-      try { localStorage.removeItem(rememberKey); } catch {}
+      try {
+        localStorage.removeItem(rememberKey);
+      } catch {}
     } finally {
       setLoading(false);
     }
@@ -108,7 +126,11 @@ export default function EncryptedArticle(props: {
           placeholder="输入密码"
           style={{ flex: 1, padding: 10, borderRadius: 10 }}
         />
-        <button onClick={onDecrypt} disabled={loading || !pw} style={{ padding: "10px 14px", borderRadius: 10 }}>
+        <button
+          onClick={onDecrypt}
+          disabled={loading || !pw}
+          style={{ padding: "10px 14px", borderRadius: 10 }}
+        >
           {loading ? "解密中…" : "解密"}
         </button>
       </div>
@@ -116,4 +138,5 @@ export default function EncryptedArticle(props: {
     </section>
   );
 }
+
 
