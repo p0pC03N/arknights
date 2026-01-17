@@ -4,12 +4,15 @@ import { viewIndex, readyToTouch } from "../../components/store/rootLayoutStore"
 import { directions } from "../../components/store/lineDecoratorStore";
 
 import arknightsConfig from "../../../arknights.config";
+import { decryptEncryptedPayload } from "../../components/EncryptedArticle"; // 导入解密函数
 
 export default function Media() {
   const $viewIndex = useStore(viewIndex);
   const $readyToTouch = useStore(readyToTouch);
   const [active, setActive] = useState(false);
   const [pwMap, setPwMap] = useState<Record<string, string>>({});
+  const [authState, setAuthState] = useState<Record<string, "idle" | "ok" | "bad" | "loading">>({}); // 跟踪每个条目的授权状态
+  const [htmlById, setHtmlById] = useState<Record<string, string>>({}); // 每个条目解密后的内容
 
   // ✅ 兼容 GitHub Pages 子路径
   const base = import.meta.env.BASE_URL;
@@ -41,12 +44,32 @@ export default function Media() {
     setActive(isActive);
   }, [$viewIndex, $readyToTouch]);
 
+  // 验证密码并解密
+  async function onDecrypt(a: any) {
+    const id = getArticleId(a);
+    const pw = pwMap[id] ?? "";
+    if (!pw) return; // 如果没有输入密码，则不进行解密
+
+    setAuthState((s) => ({ ...s, [id]: "loading" }));
+
+    try {
+      const payload = a.locked ? await import(`${base}src/content/secret/${id}.payload.json`) : null;
+      if (!payload) throw new Error("No payload");
+
+      // 使用导出的解密函数进行解密
+      const html = await decryptEncryptedPayload(payload, pw);
+      setHtmlById((prev) => ({ ...prev, [id]: html }));
+      setAuthState((s) => ({ ...s, [id]: "ok" }));
+    } catch (e) {
+      setHtmlById((prev) => ({ ...prev, [id]: "" }));
+      setAuthState((s) => ({ ...s, [id]: "bad" }));
+    }
+  }
+
   return (
     <div
       id="media"
-      className={`w-[100vw] max-w-[180rem] h-full absolute top-0 right-0 bottom-0 left-auto transition-all duration-1000 ${
-        active ? "opacity-100 visible" : "opacity-0 invisible"
-      }`}
+      className={`w-[100vw] max-w-[180rem] h-full absolute top-0 right-0 bottom-0 left-auto transition-all duration-1000 ${active ? "opacity-100 visible" : "opacity-0 invisible"}`}
     >
       {/* 整页容器 */}
       <div className="w-full h-full relative overflow-hidden">
@@ -71,16 +94,11 @@ export default function Media() {
 
         {/* ✅ 内容区：左 30% 列表；右侧是“固定图片展示框”，但图片不随选择变化 */}
         <div className="absolute left-10 right-10 top-28 bottom-10">
-          <div
-            className="grid gap-6 h-full"
-            style={{ gridTemplateColumns: "30% 70%" }}
-          >
+          <div className="grid gap-6 h-full" style={{ gridTemplateColumns: "30% 70%" }}>
             {/* 左侧列表 */}
             <aside className="h-full overflow-hidden rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md">
               <div className="p-4 border-b border-white/10">
-                <div className="text-xl text-white font-benderBold tracking-wide">
-                  泰拉万象
-                </div>
+                <div className="text-xl text-white font-benderBold tracking-wide">泰拉万象</div>
                 <div className="text-sm text-white/70 mt-1">TERRA OMNIA</div>
               </div>
 
@@ -99,78 +117,61 @@ export default function Media() {
                     const pw = pwMap[id] ?? "";
 
                     return (
-                    <a
-                      key={`${a.href}-${idx}`}
-                      href={a.href}
-                      className="group block rounded-xl border border-white/10 hover:border-white/30 bg-black/30 p-4 transition"
-                      onClick={(e) => {
-                        if (!locked) return;
-                        // 加密条目：如果还没输入密码，则阻止跳转（让用户先输入）
-                        let stored = "";
-                        try { stored = localStorage.getItem(rememberKey) ?? ""; } catch {}
-                        const usingPw = pw || stored;
-                        if (!usingPw) {
-                          e.preventDefault();
-                          return;
-                        }
-                        // 有密码就写入并跳转（解密在目标页面完成）
-                        try { localStorage.setItem(rememberKey, usingPw); } catch {}
-                      }}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="font-semibold text-white truncate">
-                            {a.title}
-                            {a.subTitle ? <span className="text-white/70"> · {a.subTitle}</span> : null}
+                      <a
+                        key={`${a.href}-${idx}`}
+                        href="#"
+                        className="group block rounded-xl border border-white/10 hover:border-white/30 bg-black/30 p-4 transition"
+                        onClick={(e) => {
+                          if (locked) {
+                            e.preventDefault();
+                            onDecrypt(a); // 只在点击“打开”按钮时验证密码并解密
+                          }
+                        }}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="font-semibold text-white truncate">
+                              {a.title}
+                              {a.subTitle ? <span className="text-white/70"> · {a.subTitle}</span> : null}
+                            </div>
+                            {a.date ? <div className="text-xs text-white/60 mt-1">{a.date}</div> : null}
                           </div>
-                          {a.date ? <div className="text-xs text-white/60 mt-1">{a.date}</div> : null}
+
+                          <div className="shrink-0 text-lg" title={locked ? "加密文档" : "公开内容"}>
+                            {locked ? "🔒" : "📰"}
+                          </div>
                         </div>
 
-                        <div className="shrink-0 text-lg" title={locked ? "加密文档" : "公开内容"}>
-                          {locked ? "🔒" : "📰"}
-                        </div>
-                      </div>
-
-                      {/* 🔒 hover 往下伸展：输入密钥 */}
-                      {locked ? (
-                        <div className="overflow-hidden max-h-0 group-hover:max-h-28 transition-[max-height] duration-300">
-                          <div className="pt-3">
-                            <div className="text-xs text-white/70 mb-2">{hint}</div>
-                            <div className="flex gap-2 items-center">
-                              <input
-                                type="password"
-                                value={pw}
-                                onChange={(ev) => setPwMap((m) => ({ ...m, [id]: ev.target.value }))}
-                                placeholder={hint}
-                                className="flex-1 px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white outline-none focus:border-white/30"
-                                onKeyDown={(ev) => {
-                                  if (ev.key !== "Enter") return;
-                                  ev.preventDefault();
-                                  const val = (pwMap[id] ?? "").trim();
-                                  if (!val) return;
-                                  try { localStorage.setItem(rememberKey, val); } catch {}
-                                  window.location.href = String(a.href);
-                                }}
-                              />
-                              <button
-                                type="button"
-                                className="px-3 py-2 rounded-lg border border-white/10 hover:border-white/30 bg-white/5 text-white text-sm"
-                                onClick={(ev) => {
-                                  ev.preventDefault();
-                                  const val = (pwMap[id] ?? "").trim();
-                                  if (!val) return;
-                                  try { localStorage.setItem(rememberKey, val); } catch {}
-                                  window.location.href = String(a.href);
-                                }}
-                              >
-                                打开
-                              </button>
+                        {/* 🔒 hover 往下伸展：输入密钥 */}
+                        {locked ? (
+                          <div className="overflow-hidden max-h-0 group-hover:max-h-28 transition-[max-height] duration-300">
+                            <div className="pt-3">
+                              <div className="text-xs text-white/70 mb-2">{hint}</div>
+                              <div className="flex gap-2 items-center">
+                                <input
+                                  type="password"
+                                  value={pw}
+                                  onChange={(ev) => setPwMap((m) => ({ ...m, [id]: ev.target.value }))}
+                                  placeholder={hint}
+                                  className="flex-1 px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white outline-none focus:border-white/30"
+                                />
+                                <button
+                                  type="button"
+                                  className="px-3 py-2 rounded-lg border border-white/10 hover:border-white/30 bg-white/5 text-white text-sm"
+                                  onClick={(ev) => {
+                                    ev.preventDefault();
+                                    onDecrypt(a); // 点击“打开”按钮时触发解密验证
+                                  }}
+                                >
+                                  打开
+                                </button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ) : null}
-                    </a>
-                  )})
+                        ) : null}
+                      </a>
+                    );
+                  })
                 )}
               </nav>
             </aside>
