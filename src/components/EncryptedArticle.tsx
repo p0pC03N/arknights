@@ -49,8 +49,9 @@ export default function EncryptedArticle(props: {
   payload: EncryptedPayload;
   hint?: string;
   rememberKey?: string; // localStorage key
+  autoDecrypt?: boolean; // 当密码可用时自动解密（用于“输入密钥后直接打开文档”）
 }) {
-  const { payload, hint, rememberKey = "enc_doc_pw" } = props;
+  const { payload, hint, rememberKey = "enc_doc_pw", autoDecrypt = false } = props;
   const [pw, setPw] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [html, setHtml] = useState<string | null>(null);
@@ -64,6 +65,16 @@ export default function EncryptedArticle(props: {
   React.useEffect(() => {
     if (!pw && storedPw) setPw(storedPw);
   }, [storedPw]);
+
+  // 可选：当密码已有值时自动解密
+  React.useEffect(() => {
+    if (!autoDecrypt) return;
+    if (!pw) return;
+    if (html) return;
+    // 避免重复触发
+    onDecrypt();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoDecrypt, pw]);
 
   async function onDecrypt() {
     setErr(null);
@@ -105,3 +116,4 @@ export default function EncryptedArticle(props: {
     </section>
   );
 }
+
