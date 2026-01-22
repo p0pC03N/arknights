@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "@nanostores/react";
 import { viewIndex, readyToTouch } from "../../components/store/rootLayoutStore";
 import { directions } from "../../components/store/lineDecoratorStore";
@@ -13,29 +13,17 @@ export default function Media() {
   const $readyToTouch = useStore(readyToTouch);
   const [active, setActive] = useState(false);
 
-  // 输入框密码
   const [pwMap, setPwMap] = useState<Record<string, string>>({});
-  // 每条加密文档的验证状态
   const [authMap, setAuthMap] = useState<Record<string, AuthState>>({});
-  // 当前展示的文章 id + 内容（只保留当前的，避免缓存导致“无需验证”）
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeHtml, setActiveHtml] = useState<string>("");
 
-  // ✅ 兼容 GitHub Pages 子路径
   const base = import.meta.env.BASE_URL;
 
-  // ✅ 从 config 里拿 MEDIA 数据
   const media = useMemo(() => arknightsConfig?.rootPage?.MEDIA, []);
-
-  // ✅ 右侧“固定大图”
-  const rightImage = useMemo(() => {
-    return media?.rightImage ?? base + "images/terra/right.jpg";
-  }, [media, base]);
-
-  // ✅ 左侧文章列表
+  const rightImage = useMemo(() => media?.rightImage ?? base + "images/terra/right.jpg", [media, base]);
   const articles = useMemo(() => media?.articles ?? [], [media]);
 
-  // ✅ 关键：把 payload 打包进前端（构建时就确定）
   const payloadModules = useMemo(() => {
     return import.meta.glob<{ default: EncryptedPayload }>(
       "/src/content/secret/*.payload.json",
@@ -62,13 +50,11 @@ export default function Media() {
     setActive(isActive);
   }, [$viewIndex, $readyToTouch]);
 
-  // 右侧文章面板是否正在展示（用于动态变暗背景）
   const isReading = !!(activeId && authMap[activeId] === "ok" && activeHtml);
 
   async function onOpen(a: any) {
     const id = getArticleId(a);
-    const locked = !!a.locked;
-    if (!locked) return;
+    if (!a.locked) return;
 
     const pw = (pwMap[id] ?? "").trim();
     if (!pw) {
@@ -76,7 +62,6 @@ export default function Media() {
       return;
     }
 
-    // ✅ 每次都重新验证：先清理上次展示内容
     setAuthMap((m) => ({ ...m, [id]: "loading" }));
     setActiveId(id);
     setActiveHtml("");
@@ -87,15 +72,11 @@ export default function Media() {
         setAuthMap((m) => ({ ...m, [id]: "bad" }));
         return;
       }
-
       const html = await decryptEncryptedPayload(payload, pw);
-
-      // ✅ 成功：显示“请查阅” + 右侧展示文章
       setAuthMap((m) => ({ ...m, [id]: "ok" }));
       setActiveId(id);
       setActiveHtml(html);
     } catch {
-      // ✅ 失败：显示“未授权” + 不展示文章
       setAuthMap((m) => ({ ...m, [id]: "bad" }));
       setActiveHtml("");
     }
@@ -106,6 +87,40 @@ export default function Media() {
     setActiveHtml("");
   }
 
+  // ✅ 关键新增：文章打开时，拦截滚轮/触摸滚动事件，避免触发全局“翻页”
+  const articleScrollRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = articleScrollRef.current;
+    if (!el) return;
+
+    if (!isReading) return;
+
+    // wheel: preventDefault 需要 passive: false
+    const onWheel = (e: WheelEvent) => {
+      // 让滚动只在文章容器里发生，不让事件冒泡到全局翻页监听
+      e.stopPropagation();
+      // 只在容器可滚动时阻止默认（否则可能会卡住）
+      const canScroll = el.scrollHeight > el.clientHeight;
+      if (canScroll) e.preventDefault();
+    };
+
+    // touchmove: 移动端防止触发页面切换
+    const onTouchMove = (e: TouchEvent) => {
+      e.stopPropagation();
+      const canScroll = el.scrollHeight > el.clientHeight;
+      if (canScroll) e.preventDefault();
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+
+    return () => {
+      el.removeEventListener("wheel", onWheel as any);
+      el.removeEventListener("touchmove", onTouchMove as any);
+    };
+  }, [isReading]);
+
   return (
     <div
       id="media"
@@ -114,7 +129,6 @@ export default function Media() {
       }`}
     >
       <div className="w-full h-full relative overflow-hidden">
-        {/* 背景用右侧图 */}
         <div
           className="absolute inset-0"
           style={{
@@ -151,7 +165,6 @@ export default function Media() {
                     const pw = pwMap[id] ?? "";
                     const st: AuthState = authMap[id] ?? "idle";
 
-                    // 非加密：保持原跳转
                     if (!locked) {
                       return (
                         <a
@@ -173,7 +186,6 @@ export default function Media() {
                       );
                     }
 
-                    // 加密：不跳转，只有点“打开”才验证
                     return (
                       <div
                         key={`${a.href}-${idx}`}
@@ -190,7 +202,6 @@ export default function Media() {
                           <div className="shrink-0 text-lg" title="加密文档">🔒</div>
                         </div>
 
-                        {/* hover 下滑输入 */}
                         <div className="overflow-hidden max-h-0 group-hover:max-h-44 transition-[max-height] duration-300">
                           <div className="pt-3">
                             <div className="text-xs text-white/70 mb-2">{hint}</div>
@@ -202,11 +213,8 @@ export default function Media() {
                                 onChange={(ev) => {
                                   const val = ev.target.value;
                                   setPwMap((m) => ({ ...m, [id]: val }));
-                                  // ✅ 只要改动密码，就清空之前的验证结果/内容，强制下次重新验证
                                   setAuthMap((m) => ({ ...m, [id]: "idle" }));
-                                  if (activeId === id) {
-                                    setActiveHtml("");
-                                  }
+                                  if (activeId === id) setActiveHtml("");
                                 }}
                                 placeholder={hint}
                                 className="flex-1 px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white outline-none focus:border-white/30"
@@ -231,7 +239,6 @@ export default function Media() {
                               </button>
                             </div>
 
-                            {/* 状态提示：正确/错误都必须有反馈 */}
                             {st === "ok" ? (
                               <div className="mt-2 text-sm text-white/80">请查阅</div>
                             ) : st === "bad" ? (
@@ -246,9 +253,8 @@ export default function Media() {
               </nav>
             </aside>
 
-            {/* 右侧 7/10：默认大图；验证成功后滑入文章 */}
+            {/* 右侧 7/10：默认大图；阅读时变暗 + 文章滚动 */}
             <section className="relative h-full overflow-hidden rounded-2xl border border-white/10 bg-black/35 backdrop-blur-md">
-              {/* 背景图 */}
               <img
                 src={rightImage}
                 alt="Terra Omnia"
@@ -256,7 +262,7 @@ export default function Media() {
                 loading="lazy"
               />
 
-              {/* ✅ 关键改动：文章展开后背景变暗（遮罩加深），文字更清晰 */}
+              {/* 阅读时遮罩加深 */}
               <div
                 className={[
                   "absolute inset-0 transition-all duration-300",
@@ -264,7 +270,7 @@ export default function Media() {
                 ].join(" ")}
               />
 
-              {/* 文章面板（从左侧“伸展”到右侧） */}
+              {/* 文章面板 */}
               <div
                 className={[
                   "absolute inset-0",
@@ -286,8 +292,12 @@ export default function Media() {
                     </button>
                   </div>
 
-                  <div className="flex-1 overflow-auto p-4">
-                    {/* 用 article，风格沿用你全站样式 */}
+                  {/* ✅ 文章滚动容器：绑定 ref，用于拦截滚轮/触摸滑动 */}
+                  <div
+                    ref={articleScrollRef}
+                    className="flex-1 overflow-auto p-4"
+                    style={{ overscrollBehavior: "contain", touchAction: "pan-y" }}
+                  >
                     <article dangerouslySetInnerHTML={{ __html: activeHtml }} />
                   </div>
                 </div>
