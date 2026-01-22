@@ -21,12 +21,18 @@ export default function Media() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeHtml, setActiveHtml] = useState<string>("");
 
+  // ✅ 兼容 GitHub Pages 子路径
   const base = import.meta.env.BASE_URL;
 
+  // ✅ 从 config 里拿 MEDIA 数据
   const media = useMemo(() => arknightsConfig?.rootPage?.MEDIA, []);
+
+  // ✅ 右侧“固定大图”
   const rightImage = useMemo(() => {
     return media?.rightImage ?? base + "images/terra/right.jpg";
   }, [media, base]);
+
+  // ✅ 左侧文章列表
   const articles = useMemo(() => media?.articles ?? [], [media]);
 
   // ✅ 关键：把 payload 打包进前端（构建时就确定）
@@ -56,6 +62,9 @@ export default function Media() {
     setActive(isActive);
   }, [$viewIndex, $readyToTouch]);
 
+  // 右侧文章面板是否正在展示（用于动态变暗背景）
+  const isReading = !!(activeId && authMap[activeId] === "ok" && activeHtml);
+
   async function onOpen(a: any) {
     const id = getArticleId(a);
     const locked = !!a.locked;
@@ -63,12 +72,11 @@ export default function Media() {
 
     const pw = (pwMap[id] ?? "").trim();
     if (!pw) {
-      // 没输入就不验证，保持安静（避免手滑一堆红字）
       setAuthMap((m) => ({ ...m, [id]: "idle" }));
       return;
     }
 
-    // 每次都重新验证：先清理上次展示内容
+    // ✅ 每次都重新验证：先清理上次展示内容
     setAuthMap((m) => ({ ...m, [id]: "loading" }));
     setActiveId(id);
     setActiveHtml("");
@@ -247,16 +255,21 @@ export default function Media() {
                 className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
                 loading="lazy"
               />
-              <div className="absolute inset-0 bg-black/35" />
+
+              {/* ✅ 关键改动：文章展开后背景变暗（遮罩加深），文字更清晰 */}
+              <div
+                className={[
+                  "absolute inset-0 transition-all duration-300",
+                  isReading ? "bg-black/70" : "bg-black/35",
+                ].join(" ")}
+              />
 
               {/* 文章面板（从左侧“伸展”到右侧） */}
               <div
                 className={[
                   "absolute inset-0",
-                  "transition-transform duration-300",
-                  activeId && authMap[activeId] === "ok" && activeHtml
-                    ? "translate-x-0"
-                    : "translate-x-8 opacity-0 pointer-events-none",
+                  "transition-all duration-300",
+                  isReading ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0 pointer-events-none",
                 ].join(" ")}
               >
                 <div className="h-full flex flex-col">
