@@ -13,27 +13,23 @@ export default function Media() {
   const $readyToTouch = useStore(readyToTouch);
   const [active, setActive] = useState(false);
 
+  // 输入框密码
   const [pwMap, setPwMap] = useState<Record<string, string>>({});
+  // 每条加密文档的验证状态
   const [authMap, setAuthMap] = useState<Record<string, AuthState>>({});
-  const [htmlMap, setHtmlMap] = useState<Record<string, string>>({});
+  // 当前展示的文章 id + 内容（只保留当前的，避免缓存导致“无需验证”）
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeHtml, setActiveHtml] = useState<string>("");
 
-  // ✅ 兼容 GitHub Pages 子路径
   const base = import.meta.env.BASE_URL;
 
-  // ✅ 从 config 里拿 MEDIA 数据
   const media = useMemo(() => arknightsConfig?.rootPage?.MEDIA, []);
-
-  // ✅ 右侧“固定大图”
   const rightImage = useMemo(() => {
     return media?.rightImage ?? base + "images/terra/right.jpg";
   }, [media, base]);
-
-  // ✅ 左侧文章列表
   const articles = useMemo(() => media?.articles ?? [], [media]);
 
-  // ✅ 关键：把加密 payload（json）打包进前端，这样点击“打开”就能立即解密验证
-  // 路径一定要以 /src 开头（Vite 约定），并且文件必须真的存在于 src/content/secret 下
+  // ✅ 关键：把 payload 打包进前端（构建时就确定）
   const payloadModules = useMemo(() => {
     return import.meta.glob<{ default: EncryptedPayload }>(
       "/src/content/secret/*.payload.json",
@@ -49,7 +45,6 @@ export default function Media() {
   }
 
   function getPayloadById(id: string): EncryptedPayload | null {
-    // 可能的 key 形如：/src/content/secret/f03_u.payload.json
     const key = `/src/content/secret/${id}.payload.json`;
     const mod = (payloadModules as any)[key];
     return mod?.default ?? null;
@@ -68,42 +63,39 @@ export default function Media() {
 
     const pw = (pwMap[id] ?? "").trim();
     if (!pw) {
-      // 没输入密码：给一个“未授权”反馈也可以，这里用 idle 不闪红
+      // 没输入就不验证，保持安静（避免手滑一堆红字）
       setAuthMap((m) => ({ ...m, [id]: "idle" }));
       return;
     }
 
-    // 已经解密过就直接展开
-    if (htmlMap[id]) {
-      setAuthMap((m) => ({ ...m, [id]: "ok" }));
-      setActiveId(id);
-      return;
-    }
-
+    // 每次都重新验证：先清理上次展示内容
     setAuthMap((m) => ({ ...m, [id]: "loading" }));
+    setActiveId(id);
+    setActiveHtml("");
 
     try {
       const payload = getPayloadById(id);
       if (!payload) {
-        // payload 文件不存在/路径不匹配
         setAuthMap((m) => ({ ...m, [id]: "bad" }));
         return;
       }
 
       const html = await decryptEncryptedPayload(payload, pw);
 
-      setHtmlMap((m) => ({ ...m, [id]: html }));
+      // ✅ 成功：显示“请查阅” + 右侧展示文章
       setAuthMap((m) => ({ ...m, [id]: "ok" }));
       setActiveId(id);
+      setActiveHtml(html);
     } catch {
+      // ✅ 失败：显示“未授权” + 不展示文章
       setAuthMap((m) => ({ ...m, [id]: "bad" }));
-      // 解密失败不展开
-      if (activeId === id) setActiveId(null);
+      setActiveHtml("");
     }
   }
 
-  function onClosePanel() {
+  function onCloseRightPanel() {
     setActiveId(null);
+    setActiveHtml("");
   }
 
   return (
@@ -114,6 +106,7 @@ export default function Media() {
       }`}
     >
       <div className="w-full h-full relative overflow-hidden">
+        {/* 背景用右侧图 */}
         <div
           className="absolute inset-0"
           style={{
@@ -129,8 +122,8 @@ export default function Media() {
 
         <div className="absolute left-10 right-10 top-28 bottom-10">
           <div className="grid gap-6 h-full" style={{ gridTemplateColumns: "30% 70%" }}>
-            {/* 左侧列表 + 抽屉内容 */}
-            <aside className="relative h-full overflow-hidden rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md">
+            {/* 左侧列表 */}
+            <aside className="h-full overflow-hidden rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md">
               <div className="p-4 border-b border-white/10">
                 <div className="text-xl text-white font-benderBold tracking-wide">泰拉万象</div>
                 <div className="text-sm text-white/70 mt-1">TERRA OMNIA</div>
@@ -150,7 +143,7 @@ export default function Media() {
                     const pw = pwMap[id] ?? "";
                     const st: AuthState = authMap[id] ?? "idle";
 
-                    // 非加密：仍然是普通跳转
+                    // 非加密：保持原跳转
                     if (!locked) {
                       return (
                         <a
@@ -189,8 +182,8 @@ export default function Media() {
                           <div className="shrink-0 text-lg" title="加密文档">🔒</div>
                         </div>
 
-                        {/* hover 往下伸展：输入密钥 */}
-                        <div className="overflow-hidden max-h-0 group-hover:max-h-36 transition-[max-height] duration-300">
+                        {/* hover 下滑输入 */}
+                        <div className="overflow-hidden max-h-0 group-hover:max-h-44 transition-[max-height] duration-300">
                           <div className="pt-3">
                             <div className="text-xs text-white/70 mb-2">{hint}</div>
 
@@ -198,7 +191,15 @@ export default function Media() {
                               <input
                                 type="password"
                                 value={pw}
-                                onChange={(ev) => setPwMap((m) => ({ ...m, [id]: ev.target.value }))}
+                                onChange={(ev) => {
+                                  const val = ev.target.value;
+                                  setPwMap((m) => ({ ...m, [id]: val }));
+                                  // ✅ 只要改动密码，就清空之前的验证结果/内容，强制下次重新验证
+                                  setAuthMap((m) => ({ ...m, [id]: "idle" }));
+                                  if (activeId === id) {
+                                    setActiveHtml("");
+                                  }
+                                }}
                                 placeholder={hint}
                                 className="flex-1 px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white outline-none focus:border-white/30"
                                 onKeyDown={(ev) => {
@@ -222,7 +223,7 @@ export default function Media() {
                               </button>
                             </div>
 
-                            {/* 状态提示 */}
+                            {/* 状态提示：正确/错误都必须有反馈 */}
                             {st === "ok" ? (
                               <div className="mt-2 text-sm text-white/80">请查阅</div>
                             ) : st === "bad" ? (
@@ -235,49 +236,49 @@ export default function Media() {
                   })
                 )}
               </nav>
+            </aside>
 
-              {/* ✅ 左侧抽屉：解密成功后从左侧列表“伸展”出来（覆盖到右侧区域） */}
+            {/* 右侧 7/10：默认大图；验证成功后滑入文章 */}
+            <section className="relative h-full overflow-hidden rounded-2xl border border-white/10 bg-black/35 backdrop-blur-md">
+              {/* 背景图 */}
+              <img
+                src={rightImage}
+                alt="Terra Omnia"
+                className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-black/35" />
+
+              {/* 文章面板（从左侧“伸展”到右侧） */}
               <div
                 className={[
-                  "absolute top-0 right-0 bottom-0 w-[70vw] max-w-[980px]",
-                  "bg-black/70 backdrop-blur-md border-l border-white/10",
+                  "absolute inset-0",
                   "transition-transform duration-300",
-                  activeId ? "translate-x-0" : "translate-x-full",
+                  activeId && authMap[activeId] === "ok" && activeHtml
+                    ? "translate-x-0"
+                    : "translate-x-8 opacity-0 pointer-events-none",
                 ].join(" ")}
               >
                 <div className="h-full flex flex-col">
                   <div className="p-4 border-b border-white/10 flex items-center justify-between">
                     <div className="text-white font-semibold truncate">
-                      {activeId ? activeId : ""}
+                      {activeId ? `文档：${activeId}` : ""}
                     </div>
                     <button
                       type="button"
                       className="px-3 py-2 rounded-lg border border-white/10 hover:border-white/30 bg-white/5 text-white text-sm"
-                      onClick={onClosePanel}
+                      onClick={onCloseRightPanel}
                     >
                       关闭
                     </button>
                   </div>
 
                   <div className="flex-1 overflow-auto p-4">
-                    {activeId && htmlMap[activeId] ? (
-                      <article dangerouslySetInnerHTML={{ __html: htmlMap[activeId] }} />
-                    ) : (
-                      <div className="text-white/70 text-sm">没有内容</div>
-                    )}
+                    {/* 用 article，风格沿用你全站样式 */}
+                    <article dangerouslySetInnerHTML={{ __html: activeHtml }} />
                   </div>
                 </div>
               </div>
-            </aside>
-
-            {/* 右侧固定图片框 */}
-            <section className="h-full overflow-hidden rounded-2xl border border-white/10 bg-black/35 backdrop-blur-md">
-              <img
-                src={rightImage}
-                alt="Terra Omnia"
-                className="w-full h-full object-cover select-none pointer-events-none"
-                loading="lazy"
-              />
             </section>
           </div>
         </div>
