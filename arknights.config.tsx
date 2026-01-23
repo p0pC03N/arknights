@@ -160,15 +160,15 @@ const config: ArknightsConfig = {
           locked: true,
         },
         {
-          title: "公开文档-02",
-          subTitle: "PUBLIC",
-          date: "2026 // 01 / 10",
-          href: base + "terra-omnia/public-02",
-          locked: false,
+          title: "加密文档-02",
+          subTitle: "SECRET",
+          date: "2026 // 01 / 23",
+          href: base + "terra-omnia/secret-02",
+          locked: true,
         },
       ],
     },
-  }, // ✅ 这里才是 rootPage 的结束
+  }, 
 };
 
 export default config;
