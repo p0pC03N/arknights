@@ -3,50 +3,75 @@ import { IconDblArrow } from "../components/SvgIcons";
 import { useStore } from "@nanostores/react";
 import { isInitialized, readyToTouch } from "../components/store/rootLayoutStore";
 
-type PixelType = "empty" | "husk" | "kernel" | "stem";
+type CellType = "empty" | "core" | "kernel";
 
-const CORN_PATTERN = [
-    "......HH......",
-    ".....HKKH.....",
-    "....HKKKKH....",
-    "...HKKKKKKH...",
-    "..HKKKKKKKKH..",
-    "..HKKKKKKKKH..",
-    "..HKKKKKKKKH..",
-    "..HKKKKKKKKH..",
-    "..HKKKKKKKKH..",
-    "...HKKKKKKH...",
-    "....HKKKKH....",
-    ".....HKKH.....",
-    ".....HSSH.....",
-    "....HH..HH....",
-];
+function CornCrossSection({ progress }: { progress: number }) {
+    const size = 17;
+    const center = Math.floor(size / 2);
+    const cellSize = "clamp(10px, 1.15vw, 18px)";
 
-function PixelCorn({ progress }: { progress: number }) {
-    const cellSize = "clamp(10px, 1.2vw, 18px)";
+    const cellMap = useMemo(() => {
+        const map = new Map<string, { type: CellType; dist: number; angle: number }>();
 
-    const kernelPositions = useMemo(() => {
-        const result: { row: number; col: number }[] = [];
-        for (let row = CORN_PATTERN.length - 1; row >= 0; row--) {
-            for (let col = 0; col < CORN_PATTERN[row].length; col++) {
-                if (CORN_PATTERN[row][col] === "K") {
-                    result.push({ row, col });
+        for (let row = 0; row < size; row++) {
+            for (let col = 0; col < size; col++) {
+                const dx = col - center;
+                const dy = row - center;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                let type: CellType = "empty";
+
+                // 中心玉米棒芯
+                if (dist <= 2.35) {
+                    type = "core";
+                }
+                // 周围玉米粒区域
+                else if (dist >= 3.4 && dist <= 7.2) {
+                    type = "kernel";
+                }
+
+                if (type !== "empty") {
+                    let angle = Math.atan2(dy, dx);
+                    if (angle < 0) angle += Math.PI * 2;
+
+                    map.set(`${row}-${col}`, {
+                        type,
+                        dist,
+                        angle,
+                    });
                 }
             }
         }
-        return result;
-    }, []);
 
-    const filledKernelCount = Math.floor((progress / 100) * kernelPositions.length);
-    const filledMap = useMemo(() => {
-        const map = new Set<string>();
-        kernelPositions.slice(0, filledKernelCount).forEach(({ row, col }) => {
-            map.add(`${row}-${col}`);
-        });
         return map;
-    }, [kernelPositions, filledKernelCount]);
+    }, [center]);
 
-    const getPixelStyle = (type: PixelType, filled = false): React.CSSProperties => {
+    const kernels = useMemo(() => {
+        return Array.from(cellMap.entries())
+            .filter(([, cell]) => cell.type === "kernel")
+            .map(([key, cell]) => ({ key, ...cell }))
+            .sort((a, b) => {
+                // 外圈优先，再顺时针填充
+                if (Math.abs(a.dist - b.dist) > 0.2) return b.dist - a.dist;
+                return a.angle - b.angle;
+            });
+    }, [cellMap]);
+
+    const filledKernelCount = Math.floor((progress / 100) * kernels.length);
+
+    const filledMap = useMemo(() => {
+        const set = new Set<string>();
+        kernels.slice(0, filledKernelCount).forEach((cell) => {
+            set.add(cell.key);
+        });
+        return set;
+    }, [kernels, filledKernelCount]);
+
+    const getCellStyle = (
+        type: CellType,
+        filled: boolean,
+        dist: number
+    ): React.CSSProperties => {
         if (type === "empty") {
             return {
                 width: cellSize,
@@ -55,66 +80,68 @@ function PixelCorn({ progress }: { progress: number }) {
             };
         }
 
-        if (type === "husk") {
+        if (type === "core") {
             return {
                 width: cellSize,
                 height: cellSize,
-                backgroundColor: "#4f8f3d",
-                boxShadow: "inset 0 0 0 1px rgba(18,32,14,.28)",
+                borderRadius: "3px",
+                backgroundColor: "#a36f3c",
+                boxShadow:
+                    "inset 0 0 0 1px rgba(72,42,14,.28), 0 0 6px rgba(120,80,30,.10)",
             };
         }
 
-        if (type === "stem") {
-            return {
-                width: cellSize,
-                height: cellSize,
-                backgroundColor: "#8f6e39",
-                boxShadow: "inset 0 0 0 1px rgba(45,32,14,.24)",
-            };
-        }
+        const glow = filled ? Math.max(0.12, 0.28 - (dist - 3.4) * 0.02) : 0;
 
         return {
             width: cellSize,
             height: cellSize,
-            backgroundColor: filled ? "#ffd84a" : "#5a4c1f",
+            borderRadius: "4px",
+            backgroundColor: filled ? "#ffd84a" : "#5b4b1d",
             boxShadow: filled
-                ? "inset 0 0 0 1px rgba(98,72,0,.30), 0 0 8px rgba(255,216,74,.18)"
-                : "inset 0 0 0 1px rgba(20,14,2,.38)",
-            transition: "background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease",
-            transform: filled ? "translateY(-1px)" : "none",
+                ? `inset 0 0 0 1px rgba(120,88,0,.24), 0 0 10px rgba(255,216,74,${glow})`
+                : "inset 0 0 0 1px rgba(24,16,4,.35)",
+            transform: filled ? "scale(1.03)" : "scale(1)",
+            transition:
+                "background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease",
         };
     };
 
     return (
         <div className="relative flex flex-col items-center select-none">
             <div
-                className="grid gap-[2px] p-[10px] bg-[#1f1f1f] border border-[#5a5a5a]"
-                style={{ gridTemplateColumns: `repeat(${CORN_PATTERN[0].length}, ${cellSize})` }}
+                className="grid gap-[2px] p-[12px] bg-[#1f1f1f] border border-[#5a5a5a] rounded-[8px]"
+                style={{ gridTemplateColumns: `repeat(${size}, ${cellSize})` }}
             >
-                {CORN_PATTERN.map((row, rowIndex) =>
-                    row.split("").map((char, colIndex) => {
-                        const key = `${rowIndex}-${colIndex}`;
-                        let type: PixelType = "empty";
+                {Array.from({ length: size * size }).map((_, index) => {
+                    const row = Math.floor(index / size);
+                    const col = index % size;
+                    const key = `${row}-${col}`;
+                    const cell = cellMap.get(key);
 
-                        if (char === "H") type = "husk";
-                        else if (char === "K") type = "kernel";
-                        else if (char === "S") type = "stem";
-
-                        const filled = type === "kernel" && filledMap.has(key);
-
+                    if (!cell) {
                         return (
                             <div
                                 key={key}
-                                style={getPixelStyle(type, filled)}
-                                className={filled ? "rounded-[2px]" : ""}
+                                style={getCellStyle("empty", false, 0)}
                             />
                         );
-                    })
-                )}
+                    }
+
+                    const filled =
+                        cell.type === "kernel" && filledMap.has(key);
+
+                    return (
+                        <div
+                            key={key}
+                            style={getCellStyle(cell.type, filled, cell.dist)}
+                        />
+                    );
+                })}
             </div>
 
             <div className="mt-[1.1vw] portrait:mt-[3vw] text-[#cfcfcf] text-[0.95vw] portrait:text-[2.4vw] tracking-[0.28em]">
-                CORN KERNEL FILL SYSTEM
+                CORN CROSS SECTION FILL SYSTEM
             </div>
         </div>
     );
@@ -239,7 +266,7 @@ export function Init() {
             }`}
         >
             <div
-                className={`absolute left-0 right-0 h-[0.05vw] bg-[${frameColor}] transition-all duration-1000 ease-in-out ${
+                className={`absolute left-0 right-0 h-[0.05vw] transition-all duration-1000 ease-in-out ${
                     isFadingOut ? "top-[-5vw]" : "top-[5vw]"
                 }`}
                 style={{ backgroundColor: frameColor }}
@@ -263,12 +290,12 @@ export function Init() {
                     </div>
                 </div>
 
-                <PixelCorn progress={progress} />
+                <CornCrossSection progress={progress} />
 
                 <div className="mt-[1.6vw] portrait:mt-[4vw] text-[0.9vw] portrait:text-[2.5vw] tracking-[0.28em] text-[#8c8c8c]">
-                    {progress < 30 && "正在整理玉米粒仓库..."}
-                    {progress >= 30 && progress < 70 && "正在向玉米棒填充像素颗粒..."}
-                    {progress >= 70 && progress < 100 && "即将完成收割装填..."}
+                    {progress < 30 && "正在塑造玉米横切面..."}
+                    {progress >= 30 && progress < 70 && "外圈玉米粒正在逐步填充..."}
+                    {progress >= 70 && progress < 100 && "横切面即将装填完成..."}
                     {progress >= 100 && "装填完成，准备进入玉米王国"}
                 </div>
 
@@ -303,7 +330,7 @@ export function Init() {
                                 <div className="flex items-center text-[0.8vw] portrait:hidden" style={{ color: commonColor }}>
                                     <span>CORN KINGDOM</span>
                                     <span className="mx-[0.8vw]">//</span>
-                                    <span>PIXEL KERNEL LOADER</span>
+                                    <span>CROSS SECTION LOADER</span>
                                 </div>
                             </div>
                         </div>
