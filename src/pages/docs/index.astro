@@ -1,12 +1,22 @@
 ---
-import DocsLayout from "../../layouts/DocsLayout.astro"
-import {IconArrow} from "../../components/SvgIcons"
+import { getCollection } from "astro:content";
+import InfoLayout from "../../layouts/InfoLayout.astro";
+import InfoCard from "../../components/InfoCard.astro";
+import GoBackTool from "../../components/GoBackTool";
+
+const allDocs = await getCollection("docs");
 ---
 
-<DocsLayout title="文档">
-  <article class="h-full flex items-center justify-center">
-    <h1 class="font-benderBold text-4xl">
-      用户文档docs
-    </h1>
-  </article>
-</DocsLayout>
+<InfoLayout title="DOCS" subTitle="文档" tabTitle="文档">
+    <div class="h-full flex-auto mr-[-16px] overflow-x-hidden overflow-y-scroll">
+        <nav class="max-w-[80.75rem] mx-auto">
+            {
+                (allDocs.length > 0) &&
+                allDocs.map((item, index) => <InfoCard {...{ index, item }} />)
+            }
+        </nav>
+        <div class="text-center text-[.75rem] font-n15eBold pt-12 pb-6">- END -</div>
+    </div>
+
+    <GoBackTool slot="tool-panel" client:load />
+</InfoLayout>
