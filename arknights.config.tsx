@@ -16,8 +16,17 @@ const config: ArknightsConfig = {
 
   navbar: {
     logo: {
-      element: () => <TitleArknights className="w-full h-auto pointer-events-none" />,
-      alt: "p0pC03N",
+      element: () => (
+        <div className="w-full h-full flex flex-col justify-center text-white leading-none pointer-events-none select-none">
+          <div className="font-oswaldMedium text-[1.65rem] portrait:text-[2.2rem] tracking-[0.18em]">
+            玉米
+          </div>
+          <div className="text-[0.55rem] portrait:text-[0.8rem] tracking-[0.35em] text-[#bdbdbd] mt-1">
+            CORN KINGDOM
+          </div>
+        </div>
+      ),
+      alt: "玉米王国",
     },
 
     items: [
