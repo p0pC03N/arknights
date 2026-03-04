@@ -5,7 +5,7 @@ import { CopyrightMini, IconArchive, IconGitHub, TitleArknights } from "./src/co
 const base = import.meta.env.BASE_URL;
 
 const config: ArknightsConfig = {
-  title: "玉米方舟",
+  title: "玉米王国",
   description: "一个退游博士的个人博客",
   language: "zh",
 
