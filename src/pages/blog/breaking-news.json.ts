@@ -21,12 +21,9 @@ export async function GET({}: APIContext) {
         .reverse()
         .map((item) => ({
             title: item.data.title ?? item.slug,
-            date: formatDate(
-                item.data.date as string | Date | undefined,
-                "DOCS"
-            ),
+            date: formatDate(item.data.date as string | Date | undefined, "DOCS"),
             href: base + "docs/" + item.slug,
-            category: item.data.category ?? "文档",
+            category: "DOCS",
         })) as BreakingNewsItemProps[];
 
     const blogList = allBlog
@@ -39,7 +36,7 @@ export async function GET({}: APIContext) {
                 item.id.substring(0, 10)
             ),
             href: base + "blog/" + item.slug,
-            category: item.data.category ?? "博客",
+            category: "BLOG",
         })) as BreakingNewsItemProps[];
 
     return new Response(
