@@ -79,11 +79,19 @@ function BreakingNewsList() {
                         <BreakingNewsItem key={index} {...item} />)
                     : <div className="text-4xl font-benderBold p-8">NO DATA</div>
             }
-            <a target="_blank" href={base + "blog/"} className={"w-[7.625rem] portrait:w-[11.125rem]"
-                + " h-[1.5rem] portrait:h-[1.75rem] text-[.875rem] portrait:text-[1.3125rem] text-[#d2d2d2]"
-                + " hover:text-black font-benderBold whitespace-nowrap bg-[#585858] hover:bg-white"
-                + " px-[.625rem] portrait:px-3 mt-8 portrait:mt-10 flex items-center cursor-pointer"
-                + " transition-colors duration-300"}>
+            <a
+                target="_blank"
+                href={
+                    data[categoryIndex]?.name === "文档"
+                        ? base + "docs/"
+                        : base + "blog/"
+                }
+                className={"w-[7.625rem] portrait:w-[11.125rem]"
+                    + " h-[1.5rem] portrait:h-[1.75rem] text-[.875rem] portrait:text-[1.3125rem] text-[#d2d2d2]"
+                    + " hover:text-black font-benderBold whitespace-nowrap bg-[#585858] hover:bg-white"
+                    + " px-[.625rem] portrait:px-3 mt-8 portrait:mt-10 flex items-center cursor-pointer"
+                    + " transition-colors duration-300"}
+            >
                 <span>READ MORE</span>
                 <IconArrow className={"w-[.4375rem] ml-auto flex-none"}/>
             </a>
