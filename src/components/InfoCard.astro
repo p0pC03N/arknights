@@ -1,19 +1,23 @@
 ---
-import type {CollectionEntry} from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
 
 interface Props {
     index: number;
-    item: CollectionEntry<"blog"> | undefined;
+    item: CollectionEntry<"blog"> | CollectionEntry<"docs"> | undefined;
 }
 
 const base = import.meta.env.BASE_URL;
 const index = Astro.props.index;
 const item = Astro.props.item;
-const thumbnail = base + "info-thumbnail/" + (item?.data?.thumbnail ?? "ACTIVITY.jpg")
+
+const collection = item?.collection ?? "blog";
+const thumbnail = base + "info-thumbnail/" + (item?.data?.thumbnail ?? "ACTIVITY.jpg");
 const title = item?.data?.title ?? item?.id ?? "";
-const href = item ? (base + "blog/" + item.slug) : "";
+const href = item ? (base + collection + "/" + item.slug) : "";
 const [year, month, day] = item?.id?.split("-") ?? ["yyyy", "MM", "dd"];
-const category = item?.data?.category ?? "未分类"
+const category =
+    item?.data?.category ??
+    (collection === "docs" ? "DOCS" : "BLOG");
 ---
 
 {
