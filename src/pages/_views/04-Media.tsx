@@ -134,22 +134,13 @@ export default function Media() {
               }`}
             >
               <div className="flex h-full flex-col bg-[linear-gradient(180deg,rgba(3,8,13,.74),rgba(3,8,13,.94))] backdrop-blur-md">
-                <div className="flex items-center justify-between gap-4 border-b border-white/10 px-5 py-4 portrait:px-4">
-                  <div>
-                    <div className="text-[0.68rem] font-benderBold tracking-[0.32em] text-white/42">VERIFY ENTRY</div>
-                    <div className="mt-2 text-[1.25rem] font-benderBold tracking-[0.08em] text-white">
-                      {selectedArticle?.title ?? ""}
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedId(null)}
-                    className="rounded-full border border-white/10 bg-black/25 px-3 py-2 text-[0.68rem] font-benderBold tracking-[0.28em] text-white/68 transition-colors duration-300 hover:border-white/20 hover:text-white"
-                  >
-                    CLOSE
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedId(null)}
+                  className="absolute right-5 top-5 z-[4] rounded-full border border-white/10 bg-black/35 px-3 py-2 text-[0.68rem] font-benderBold tracking-[0.28em] text-white/68 transition-colors duration-300 hover:border-white/20 hover:text-white portrait:right-4 portrait:top-4"
+                >
+                  CLOSE
+                </button>
 
                 <div className="min-h-0 flex-1 p-5 portrait:p-4">
                   {selectedArticle && selectedPayload ? (

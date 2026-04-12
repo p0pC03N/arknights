@@ -374,3 +374,15 @@
 .sealed-article-body .astro-code {
     background: rgba(2, 6, 23, .66);
 }
+
+.sealed-article-scramble {
+    white-space: pre-wrap;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: .04em;
+    color: rgba(184, 247, 255, .82);
+}
+
+.sealed-article-scramble-line {
+    min-height: 1.95em;
+    animation: decode-line-in .36s ease both;
+}

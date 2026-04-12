@@ -58,13 +58,8 @@ function wrapPlainText(value: string, width: number) {
       currentWidth += charWidth;
     });
 
-    if (current) {
-      lines.push(current.trimEnd());
-    }
-
-    if (paragraphIndex !== paragraphs.length - 1) {
-      lines.push("");
-    }
+    if (current) lines.push(current.trimEnd());
+    if (paragraphIndex !== paragraphs.length - 1) lines.push("");
   });
 
   return lines.length > 0 ? lines : [value];
@@ -91,26 +86,18 @@ function createGlitchBlocks(seed: number) {
     "rgba(255,255,255,.96)",
   ];
 
-  return Array.from({ length: 20 }, (_, index) => {
-    const left = (seed * 17 + index * 27) % 92;
-    const top = (seed * 9 + index * 21) % 84;
-    const width = 8 + ((seed + index * 7) % 18);
-    const height = 4 + ((seed * 3 + index * 5) % 12);
-    const color = palette[(seed + index) % palette.length];
-
-    return {
-      id: `${seed}-${index}`,
-      style: {
-        left: `${left}%`,
-        top: `${top}%`,
-        width: `${width}%`,
-        height: `${height}%`,
-        background: color,
-        animationDelay: `${(index % 6) * 0.035}s`,
-        animationDuration: `${0.26 + (index % 4) * 0.08}s`,
-      },
-    };
-  });
+  return Array.from({ length: 20 }, (_, index) => ({
+    id: `${seed}-${index}`,
+    style: {
+      left: `${(seed * 17 + index * 27) % 92}%`,
+      top: `${(seed * 9 + index * 21) % 84}%`,
+      width: `${8 + ((seed + index * 7) % 18)}%`,
+      height: `${4 + ((seed * 3 + index * 5) % 12)}%`,
+      background: palette[(seed + index) % palette.length],
+      animationDelay: `${(index % 6) * 0.035}s`,
+      animationDuration: `${0.26 + (index % 4) * 0.08}s`,
+    },
+  }));
 }
 
 export function b64ToU8(b64: string): Uint8Array {
@@ -143,6 +130,128 @@ export async function decryptEncryptedPayload(payload: EncryptedPayload, passwor
   return new TextDecoder().decode(ptBuf);
 }
 
+function ArticleViewport({
+  title,
+  statusLine,
+  html,
+  revealing,
+  displayLines,
+  presentation,
+}: {
+  title: string;
+  statusLine: string;
+  html: string | null;
+  revealing: boolean;
+  displayLines: string[];
+  presentation: Presentation;
+}) {
+  return (
+    <div className={`relative ${presentation === "panel" ? "flex h-full flex-col" : ""}`}>
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 px-6 py-4">
+        <div>
+          <div className="text-[0.72rem] font-benderBold tracking-[0.36em] text-white/42">SEALED ARCHIVE</div>
+          <div className="mt-2 text-[1.42rem] font-benderBold tracking-[0.08em] text-white">{title}</div>
+        </div>
+
+        <div className="rounded-full border border-cyan-200/18 bg-cyan-200/8 px-4 py-2 text-[0.72rem] font-n15eMedium tracking-[0.34em] text-cyan-100/90">
+          {statusLine}
+        </div>
+      </div>
+
+      <div className={`min-h-0 ${presentation === "panel" ? "flex-1 overflow-y-auto px-6 py-6" : "px-6 py-6"}`}>
+        {revealing ? (
+          <div className="sealed-article-body sealed-article-scramble">
+            {displayLines.map((line, index) => (
+              <div key={`${index}-${line.slice(0, 10)}`} className="sealed-article-scramble-line" style={{ animationDelay: `${index * 18}ms` }}>
+                {line || "\u00A0"}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <article className="sealed-article-body animate-[article-fade-in_.55s_ease]" dangerouslySetInnerHTML={{ __html: html ?? "" }} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ValidationViewport({
+  hint,
+  progress,
+  statusLine,
+  stage,
+  loading,
+  pw,
+  onChange,
+  onSubmit,
+}: {
+  hint?: string;
+  progress: number;
+  statusLine: string;
+  stage: UnlockStage;
+  loading: boolean;
+  pw: string;
+  onChange: (nextValue: string) => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <div className="relative">
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 px-6 py-4">
+        <div>
+          <div className="text-[0.72rem] font-benderBold tracking-[0.36em] text-white/42">SEALED ARCHIVE</div>
+          <div className="mt-2 text-[1.42rem] font-benderBold tracking-[0.08em] text-white">{"\u6863\u6848\u9a8c\u8bc1"}</div>
+        </div>
+
+        <div className="rounded-full border border-cyan-200/18 bg-cyan-200/8 px-4 py-2 text-[0.72rem] font-n15eMedium tracking-[0.34em] text-cyan-100/90">
+          {statusLine}
+        </div>
+      </div>
+
+      <div className="px-6 pb-6 pt-6">
+        <div className="rounded-[1.35rem] border border-white/10 bg-black/28 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="text-[0.72rem] font-benderBold tracking-[0.34em] text-white/45">UNSEAL PROGRESS</div>
+            <div className="text-[0.72rem] font-benderBold tracking-[0.28em] text-white/55">{String(progress).padStart(2, "0")}%</div>
+          </div>
+          <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/8">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${
+                stage === "bad" ? "bg-[#ffb800]" : "bg-gradient-to-r from-sky-300 via-cyan-300 to-slate-100"
+              }`}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <div className="mt-4 text-[0.9rem] leading-7 text-white/66">{hint ?? "\u8f93\u5165\u5bc6\u7801\u540e\u5f00\u59cb\u9a8c\u8bc1\u3002"}</div>
+        </div>
+
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <input
+            type="password"
+            value={pw}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder="\u8f93\u5165\u5bc6\u94a5"
+            className="h-[3.5rem] flex-1 rounded-[1.1rem] border border-white/10 bg-black/40 px-4 text-white outline-none transition-colors duration-300 focus:border-cyan-300/35"
+            onKeyDown={(event) => {
+              if (event.key !== "Enter") return;
+              event.preventDefault();
+              onSubmit();
+            }}
+          />
+
+          <button
+            type="button"
+            onClick={onSubmit}
+            disabled={loading || !pw.trim()}
+            className="h-[3.5rem] rounded-[1.1rem] border border-cyan-300/22 bg-cyan-300/12 px-5 text-[0.82rem] font-benderBold tracking-[0.28em] text-cyan-100 transition-colors duration-300 hover:bg-cyan-300/20 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading ? "UNSEALING..." : "BEGIN UNSEAL"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function EncryptedArticle(props: {
   payload: EncryptedPayload;
   hint?: string;
@@ -164,12 +273,14 @@ export default function EncryptedArticle(props: {
   const [displayLines, setDisplayLines] = useState<string[]>([]);
 
   const glitchBlocks = useMemo(() => createGlitchBlocks(warningSeed), [warningSeed]);
-  const containerClass = presentation === "panel" ? "h-full" : "mx-auto max-w-[82rem] pb-12";
+  const shellClass = presentation === "panel" ? "h-full" : "mx-auto max-w-[82rem] pb-12";
   const cardClass =
     presentation === "panel"
       ? "relative flex h-full flex-col overflow-hidden rounded-[1.8rem] border border-cyan-200/12 bg-[#04070b]/94 panel-grid panel-noise glow-frame backdrop-blur-md"
       : "relative overflow-hidden rounded-[1.8rem] border border-cyan-200/12 bg-[#04070b]/94 panel-grid panel-noise glow-frame backdrop-blur-md";
-  const decodeWidth = presentation === "panel" ? 32 : 40;
+  const decodeWidth = presentation === "panel" ? 48 : 62;
+  const headerTitle = title ?? "\u5c01\u5b58\u6863\u6848";
+  const isArticleStage = stage === "revealing" || stage === "unlocked";
 
   useEffect(() => {
     if (stage !== "revealing" || sourceLines.length === 0) return undefined;
@@ -178,10 +289,8 @@ export default function EncryptedArticle(props: {
     let startTimer: number | undefined;
     let settleTimer: number | undefined;
     let intervalTimer: number | undefined;
-    const ticksPerLine = 4;
-    const totalTicks = sourceLines.length * ticksPerLine + 8;
-
-    setDisplayLines(sourceLines.map((line, index) => scrambleLine(line, 0, warningSeed + index * 7)));
+    const ticksPerLine = 5;
+    const totalTicks = sourceLines.length * ticksPerLine + 14;
 
     startTimer = window.setTimeout(() => {
       intervalTimer = window.setInterval(() => {
@@ -200,17 +309,17 @@ export default function EncryptedArticle(props: {
           settleTimer = window.setTimeout(() => {
             setStage("unlocked");
             setStatusLine("VERIFIED");
-          }, 260);
+          }, 320);
         }
-      }, 58);
-    }, 260);
+      }, 64);
+    }, 360);
 
     return () => {
       if (startTimer) window.clearTimeout(startTimer);
       if (intervalTimer) window.clearInterval(intervalTimer);
       if (settleTimer) window.clearTimeout(settleTimer);
     };
-  }, [sourceLines, stage, warningSeed]);
+  }, [sourceLines, stage]);
 
   function resetSignal(nextValue: string) {
     setPw(nextValue);
@@ -230,20 +339,20 @@ export default function EncryptedArticle(props: {
     setProgress(16);
 
     try {
-      await wait(150);
+      await wait(160);
       setStatusLine("MATCHING");
-      setProgress(42);
+      setProgress(44);
 
       const out = await decryptEncryptedPayload(payload, password);
       const previewLines = wrapPlainText(stripHtmlTags(out), decodeWidth);
 
       setStatusLine("DECODING");
-      setProgress(78);
+      setProgress(82);
       await wait(220);
 
       setHtml(out);
       setSourceLines(previewLines);
-      setDisplayLines(previewLines.map((line, index) => scrambleLine(line, 0, index * 5 + warningSeed)));
+      setDisplayLines(previewLines.map((line, index) => scrambleLine(line, 0, index * 7 + warningSeed)));
       setStage("revealing");
       setProgress(100);
     } catch {
@@ -259,103 +368,38 @@ export default function EncryptedArticle(props: {
     }
   }
 
-  const headerTitle = title ?? "\u5c01\u5b58\u6863\u6848";
-
   return (
-    <section className={containerClass}>
+    <section className={shellClass}>
       <div className={cardClass}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(255,255,255,.08),transparent_24%),radial-gradient(circle_at_76%_22%,rgba(56,189,248,.08),transparent_20%),linear-gradient(180deg,rgba(255,255,255,.02),rgba(2,6,23,.16)_30%,rgba(2,6,23,.52))]" />
 
         {stage === "revealing" && (
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute inset-y-0 left-[-18%] w-[18%] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,.34),transparent)]" style={{ animation: "decode-sweep 1.4s ease-out forwards" }} />
+            <div className="absolute inset-y-0 left-[-18%] w-[18%] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,.34),transparent)]" style={{ animation: "decode-sweep 1.6s ease-out forwards" }} />
           </div>
         )}
 
         <div className={`relative ${presentation === "panel" ? "flex h-full flex-col" : ""}`}>
-          <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 px-6 py-4">
-            <div>
-              <div className="text-[0.72rem] font-benderBold tracking-[0.36em] text-white/42">SEALED ARCHIVE</div>
-              <div className="mt-2 text-[1.42rem] font-benderBold tracking-[0.08em] text-white">{headerTitle}</div>
-            </div>
-
-            <div className="rounded-full border border-cyan-200/18 bg-cyan-200/8 px-4 py-2 text-[0.72rem] font-n15eMedium tracking-[0.34em] text-cyan-100/90">
-              {statusLine}
-            </div>
-          </div>
-
-          {stage === "unlocked" && html ? (
-            <div className={`min-h-0 ${presentation === "panel" ? "flex-1 overflow-y-auto px-6 py-6" : "px-6 py-6"}`}>
-              <article className="sealed-article-body animate-[article-fade-in_.55s_ease]" dangerouslySetInnerHTML={{ __html: html }} />
-            </div>
+          {isArticleStage ? (
+            <ArticleViewport
+              title={headerTitle}
+              statusLine={stage === "revealing" ? "DECODING" : statusLine}
+              html={html}
+              revealing={stage === "revealing"}
+              displayLines={displayLines}
+              presentation={presentation}
+            />
           ) : (
-            <div className={`min-h-0 ${presentation === "panel" ? "flex flex-1 flex-col overflow-hidden" : ""}`}>
-              <div className="px-6 pt-6">
-                <div className="rounded-[1.35rem] border border-white/10 bg-black/28 p-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="text-[0.72rem] font-benderBold tracking-[0.34em] text-white/45">UNSEAL PROGRESS</div>
-                    <div className="text-[0.72rem] font-benderBold tracking-[0.28em] text-white/55">{String(progress).padStart(2, "0")}%</div>
-                  </div>
-                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/8">
-                    <div
-                      className={`h-full rounded-full transition-all duration-300 ${
-                        stage === "bad" ? "bg-[#ffb800]" : "bg-gradient-to-r from-sky-300 via-cyan-300 to-slate-100"
-                      }`}
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                  <div className="mt-4 text-[0.9rem] leading-7 text-white/66">{hint ?? "\u8f93\u5165\u5bc6\u7801\u540e\u5f00\u59cb\u9a8c\u8bc1\u3002"}</div>
-                </div>
-
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <input
-                    type="password"
-                    value={pw}
-                    onChange={(event) => resetSignal(event.target.value)}
-                    placeholder="\u8f93\u5165\u5bc6\u94a5"
-                    className="h-[3.5rem] flex-1 rounded-[1.1rem] border border-white/10 bg-black/40 px-4 text-white outline-none transition-colors duration-300 focus:border-cyan-300/35"
-                    onKeyDown={(event) => {
-                      if (event.key !== "Enter") return;
-                      event.preventDefault();
-                      void onDecrypt();
-                    }}
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() => void onDecrypt()}
-                    disabled={loading || !pw.trim()}
-                    className="h-[3.5rem] rounded-[1.1rem] border border-cyan-300/22 bg-cyan-300/12 px-5 text-[0.82rem] font-benderBold tracking-[0.28em] text-cyan-100 transition-colors duration-300 hover:bg-cyan-300/20 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {loading ? "UNSEALING..." : "BEGIN UNSEAL"}
-                  </button>
-                </div>
-              </div>
-
-              {stage === "revealing" && (
-                <div className={`min-h-0 flex-1 ${presentation === "panel" ? "overflow-y-auto" : ""}`}>
-                  <div className="mx-6 mt-8 overflow-hidden rounded-[1.45rem] border border-white/10 bg-black/42">
-                    <div className="border-b border-white/10 px-5 py-4">
-                      <div className="text-[0.66rem] font-benderBold tracking-[0.3em] text-white/38">TEXT RESTORE</div>
-                    </div>
-                    <div className="relative overflow-hidden px-5 py-5">
-                      <div className="absolute inset-0 panel-grid opacity-[0.08]" />
-                      <div className="relative space-y-1 font-mono text-[0.84rem] leading-6 text-cyan-100/78">
-                        {displayLines.map((line, index) => (
-                          <div
-                            key={`${index}-${line.slice(0, 12)}`}
-                            className="origin-left transition-all duration-300"
-                            style={{ animation: "decode-line-in .32s ease" }}
-                          >
-                            {line || "\u00A0"}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <ValidationViewport
+              hint={hint}
+              progress={progress}
+              statusLine={statusLine}
+              stage={stage}
+              loading={loading}
+              pw={pw}
+              onChange={resetSignal}
+              onSubmit={() => void onDecrypt()}
+            />
           )}
         </div>
 
@@ -367,7 +411,7 @@ export default function EncryptedArticle(props: {
             ))}
 
             <div key={warningSeed} className="absolute inset-x-0 top-1/2 -translate-y-1/2 px-0">
-              <div className="warning-banner mx-auto flex min-h-[9.8rem] w-full items-center justify-center border-y border-[#ffe699]/70 bg-[#ffcf33]/94 px-6 py-5 text-center shadow-[0_0_48px_rgba(255,207,51,.28)]">
+              <div className="warning-banner mx-auto flex min-h-[10.5rem] w-full items-center justify-center border-y border-[#ffe699]/80 bg-[#ffcf33]/96 px-6 py-5 text-center shadow-[0_0_48px_rgba(255,207,51,.28)]">
                 <div className="space-y-1 font-n15eMedium text-[#a4001a]">
                   <div className="text-[1.15rem] tracking-[0.5em]">---⚠⚠⚠---</div>
                   <div className="text-[1.05rem] tracking-[0.42em]">---warning---</div>
