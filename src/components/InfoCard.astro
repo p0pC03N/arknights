@@ -1,10 +1,18 @@
 ---
-import type { CollectionEntry } from 'astro:content';
-import { getEntryDisplayDate, getEntryUrl } from "../content/utils";
+import type { CollectionEntry } from "astro:content";
+import {
+  getCollectionDescriptor,
+  getEntryCode,
+  getEntrySecurity,
+  getEntryStatus,
+  getEntrySummary,
+  getEntryUpdatedLabel,
+} from "../content/presentation";
+import { getEntryUrl } from "../content/utils";
 
 interface Props {
-    index: number;
-    item: CollectionEntry<"blog"> | CollectionEntry<"docs"> | undefined;
+  index: number;
+  item: CollectionEntry<"blog"> | CollectionEntry<"docs"> | undefined;
 }
 
 const base = import.meta.env.BASE_URL;
@@ -12,30 +20,87 @@ const index = Astro.props.index;
 const item = Astro.props.item;
 
 const collection = item?.collection ?? "blog";
-const thumbnailName = typeof item?.data?.thumbnail === "string" && item.data.thumbnail.trim()
+const thumbnailName =
+  typeof item?.data?.thumbnail === "string" && item.data.thumbnail.trim()
     ? item.data.thumbnail.trim()
     : "ACTIVITY.jpg";
-const thumbnail = base + "info-thumbnail/" + thumbnailName;
+const thumbnail = `${base}info-thumbnail/${thumbnailName}`;
 const title = item?.data?.title ?? item?.id ?? "";
 const href = item ? getEntryUrl(item) : "";
-const displayDate = item ? getEntryDisplayDate(item) : "未设置日期";
-const category =
-    (typeof item?.data?.category === "string" && item.data.category.trim() ? item.data.category.trim() : undefined) ??
-    (collection === "docs" ? "DOCS" : "BLOG");
+const descriptor = item ? getCollectionDescriptor(item) : "ARCHIVE";
+const code = item ? getEntryCode(item, index) : "LOG-000";
+const security = item ? getEntrySecurity(item) : "AMBER";
+const status = item ? getEntryStatus(item) : "ACTIVE";
+const updated = item ? getEntryUpdatedLabel(item) : "UNSTAMPED";
+const summary = item ? getEntrySummary(item) : "";
+
+const accentClass =
+  collection === "docs"
+    ? "border-sky-300/20 hover:border-sky-200/60 glow-blue"
+    : "border-yellow-300/20 hover:border-yellow-200/60 glow-amber";
+
+const chipClass =
+  collection === "docs"
+    ? "border-sky-300/25 bg-sky-300/10 text-sky-100"
+    : "border-yellow-300/25 bg-yellow-300/10 text-yellow-100";
+
+const glowColor = collection === "docs" ? "#38bdf8" : "#facc15";
 ---
 
 {
-    item && <a target="_self" {...{href, title}}
-               class={"w-[38.25rem] portrait:w-full h-[17rem] text-inherit hover:text-ark-blue no-underline inline-block relative pt-[3.25rem] cursor-pointer"
-                   + ((index % 2 === 0) ? " landscape:pr-10" : " landscape:pl-10 landscape:top-12")}>
-        <img class="w-full h-[9.875rem] portrait:h-auto object-cover object-center block"
-             src={thumbnail} alt="Thumbnail - 缩略图"/>
-        <div class="mt-2 flex whitespace-nowrap transition-[color] duration-300">
-            <div class="text-ark-blue text-[1.125rem] font-bold mr-12 flex-none">{category}</div>
-            <div class="text-[1.125rem] font-bold flex-none mr-12">
-                <div class="text-[.875rem] font-benderRegular">{displayDate}</div>
-                <div class="text-[1.25rem] leading-[1.4] font-bold truncate">{title}</div>
+  item && (
+    <a
+      target="_self"
+      href={href}
+      title={title}
+      class={`group relative block overflow-hidden rounded-[1.75rem] border bg-black/35 text-inherit no-underline panel-grid panel-noise backdrop-blur-md transition-all duration-300 ${accentClass}`}
+    >
+      <div
+        class="absolute inset-y-0 right-0 hidden w-[16rem] bg-cover bg-center opacity-18 transition-opacity duration-300 group-hover:opacity-28 lg:block"
+        style={{ backgroundImage: `linear-gradient(90deg, transparent, rgba(0,0,0,.15) 20%, rgba(0,0,0,.6)), url(${thumbnail})` }}
+      />
+      <div class="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.03),transparent_32%,rgba(255,255,255,0.02))]" />
+      <div
+        class="absolute left-6 top-6 h-2.5 w-2.5 rounded-full shadow-[0_0_18px_currentColor]"
+        style={{ color: glowColor }}
+      />
+
+      <div class="relative flex flex-col gap-6 px-8 py-7 lg:flex-row lg:items-start lg:justify-between">
+        <div class="flex-1">
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="text-[0.72rem] font-benderBold tracking-[0.35em] text-white/45">{descriptor}</div>
+            <div class={`rounded-full border px-3 py-1 text-[0.68rem] font-benderBold tracking-[0.28em] ${chipClass}`}>{security}</div>
+            <div class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.68rem] font-benderBold tracking-[0.28em] text-white/65">{status}</div>
+            <div class="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[0.68rem] font-benderBold tracking-[0.28em] text-white/45">
+              UPDATED // {updated}
             </div>
+          </div>
+
+          <div class="mt-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div class="text-[0.75rem] font-benderBold tracking-[0.32em] text-white/40">{code}</div>
+              <h2 class="mt-2 text-[2rem] font-benderBold tracking-[0.06em] text-white transition-transform duration-300 group-hover:translate-x-1 portrait:text-[1.55rem]">
+                {title}
+              </h2>
+            </div>
+          </div>
+
+          <p class="mt-5 max-w-[52rem] text-[0.98rem] leading-8 text-white/68">
+            {summary}
+          </p>
         </div>
+
+        <div class="flex items-end justify-between gap-5 border-t border-white/10 pt-5 lg:w-[12rem] lg:flex-col lg:items-end lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+          <div class="text-right">
+            <div class="text-[0.72rem] font-benderBold tracking-[0.32em] text-white/40">ENTRY INDEX</div>
+            <div class="mt-2 text-[2.15rem] font-n15eDemiBold leading-none text-white/85">{String(index + 1).padStart(2, "0")}</div>
+          </div>
+
+          <div class="text-[0.78rem] font-benderBold tracking-[0.3em] text-white transition-transform duration-300 group-hover:translate-x-1">
+            OPEN DOSSIER
+          </div>
+        </div>
+      </div>
     </a>
+  )
 }

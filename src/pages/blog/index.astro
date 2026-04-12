@@ -3,6 +3,7 @@ import {getCollection} from 'astro:content'
 // import {Debug} from 'astro:components'
 import InfoLayout from "../../layouts/InfoLayout.astro"
 import InfoCard from "../../components/InfoCard.astro"
+import CollectionDeckHeader from "../../components/CollectionDeckHeader.astro"
 import GoBackTool from "../../components/GoBackTool"
 import { filterPublishedEntries, sortBlogEntries } from "../../content/utils";
 
@@ -11,14 +12,24 @@ const allBlog = sortBlogEntries(filterPublishedEntries(await getCollection("blog
 
 <InfoLayout title="BLOG" subTitle="博客" tabTitle="博客">
     <div class="h-full flex-auto mr-[-16px] overflow-x-hidden overflow-y-scroll">
-        <nav class="max-w-[80.75rem] mx-auto">
+        <div class="max-w-[80.75rem] mx-auto">
+            <CollectionDeckHeader
+                title="FIELD JOURNAL"
+                subTitle="BLOG DOSSIER"
+                description="这里存放阶段日志、年度报告、逆向随笔和个人记录。每一条都按档案条目整理，强调回看和检索，而不是做成普通图卡流。"
+                total={allBlog.length}
+                accent="amber"
+            />
+        </div>
+
+        <nav class="max-w-[80.75rem] mx-auto mt-8 space-y-5 pb-6">
             {
                 (allBlog.length > 0) && allBlog.map((item, index) =>
                             <InfoCard {...{index, item}}/>)
             }
             <!--<Debug {allBlog}/>-->
         </nav>
-        <div class="text-center text-[.75rem] font-n15eBold pt-12 pb-6">- END -</div>
+        <div class="text-center text-[.75rem] font-n15eBold pt-8 pb-6 tracking-[0.4em] text-white/35">- END OF JOURNAL -</div>
         <!-- TODO: 显示页码 -->
     </div>
 

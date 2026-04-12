@@ -2,6 +2,7 @@
 import { getCollection } from "astro:content";
 import InfoLayout from "../../layouts/InfoLayout.astro";
 import InfoCard from "../../components/InfoCard.astro";
+import CollectionDeckHeader from "../../components/CollectionDeckHeader.astro";
 import GoBackTool from "../../components/GoBackTool";
 import { filterPublishedEntries, sortDocEntries } from "../../content/utils";
 
@@ -10,13 +11,23 @@ const allDocs = sortDocEntries(filterPublishedEntries(await getCollection("docs"
 
 <InfoLayout title="DOCS" subTitle="文档" tabTitle="文档">
     <div class="h-full flex-auto mr-[-16px] overflow-x-hidden overflow-y-scroll">
-        <nav class="max-w-[80.75rem] mx-auto">
+        <div class="max-w-[80.75rem] mx-auto">
+            <CollectionDeckHeader
+                title="BLUEPRINT DECK"
+                subTitle="DOCS NETWORK"
+                description="这里存放专题文档、题解和站点说明。每一份文档都会作为知识节点归档，后续会和左侧知识地图形成统一的导航系统。"
+                total={allDocs.length}
+                accent="blue"
+            />
+        </div>
+
+        <nav class="max-w-[80.75rem] mx-auto mt-8 space-y-5 pb-6">
             {
                 (allDocs.length > 0) &&
                 allDocs.map((item, index) => <InfoCard {...{ index, item }} />)
             }
         </nav>
-        <div class="text-center text-[.75rem] font-n15eBold pt-12 pb-6">- END -</div>
+        <div class="text-center text-[.75rem] font-n15eBold pt-8 pb-6 tracking-[0.4em] text-white/35">- END OF NETWORK -</div>
     </div>
 
     <GoBackTool slot="tool-panel" client:load />

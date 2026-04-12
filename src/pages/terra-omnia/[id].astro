@@ -30,11 +30,11 @@ const entry = Object.entries(payloadModules).find(([p]) => {
 });
 
 const payload = entry?.[1]?.default;
-const title = id ?? "加密文档";
+const title = id ? `封存档案 ${id}` : "加密文档";
 const headings: any[] = [];
 ---
 
-<DocsLayout title={title} headings={headings}>
+<DocsLayout title={title} headings={headings} showKnowledgeMap={false}>
   {
     payload ? (
       <EncryptedArticle client:load payload={payload} autoDecrypt={true} />

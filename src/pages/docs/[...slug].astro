@@ -16,7 +16,7 @@ const {Content, headings} = await entry.render()
 const title = entry?.data?.title ?? headings[0]?.text ?? "无标题"
 ---
 
-<DocsLayout {...{title, headings}}>
+<DocsLayout {...{title, headings}} currentSlug={entry.slug}>
     <!-- <Debug {entry}/> -->
     <article>
         <Content/>

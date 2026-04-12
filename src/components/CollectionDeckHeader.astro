@@ -1,0 +1,48 @@
+---
+interface Props {
+  title: string;
+  subTitle: string;
+  description: string;
+  total: number;
+  accent?: "amber" | "blue";
+}
+
+const {
+  title,
+  subTitle,
+  description,
+  total,
+  accent = "blue",
+} = Astro.props as Props;
+
+const accentClass =
+  accent === "amber"
+    ? "border-yellow-300/25 bg-yellow-300/10 text-yellow-100"
+    : "border-sky-300/25 bg-sky-300/10 text-sky-100";
+
+const glowClass = accent === "amber" ? "glow-amber" : "glow-blue";
+const auraClass =
+  accent === "amber"
+    ? "from-yellow-300/18 via-amber-500/8 to-transparent"
+    : "from-sky-300/18 via-cyan-400/10 to-transparent";
+---
+
+<section class={`relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/30 px-8 py-8 panel-grid panel-noise backdrop-blur-md glow-frame ${glowClass}`}>
+  <div class={`absolute inset-0 bg-gradient-to-br ${auraClass}`} />
+  <div class="relative flex flex-col gap-6">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <div class="text-[0.72rem] font-benderBold tracking-[0.38em] text-white/45">{subTitle}</div>
+        <div class="mt-3 text-[2.65rem] font-benderBold tracking-[0.08em] text-white portrait:text-[2rem]">
+          {title}
+        </div>
+      </div>
+
+      <div class={`rounded-full border px-4 py-2 text-[0.72rem] font-benderBold tracking-[0.32em] ${accentClass}`}>
+        DOSSIERS // {String(total).padStart(2, "0")}
+      </div>
+    </div>
+
+    <p class="max-w-[56rem] text-[1rem] leading-8 text-white/72">{description}</p>
+  </div>
+</section>
