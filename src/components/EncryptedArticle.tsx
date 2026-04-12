@@ -10,6 +10,7 @@ export type EncryptedPayload = {
 };
 
 type UnlockStage = "locked" | "verifying" | "revealing" | "unlocked" | "bad";
+type Presentation = "page" | "panel";
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -72,28 +73,27 @@ function wrapPlainText(value: string, width: number) {
 function scrambleLine(line: string, revealRatio: number, salt: number) {
   const glyphs = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>/[]{}#*%$&@";
 
-  return line
-    .split("")
+  return Array.from(line)
     .map((char, index) => {
       if (char === " ") return " ";
       if (revealRatio >= 1 || index / Math.max(1, line.length - 1) < revealRatio) return char;
-      return glyphs[(index * 17 + salt * 11) % glyphs.length];
+      return glyphs[(index * 17 + salt * 13) % glyphs.length];
     })
     .join("");
 }
 
 function createGlitchBlocks(seed: number) {
   const palette = [
-    "rgba(255,0,90,.88)",
-    "rgba(0,245,255,.82)",
-    "rgba(255,224,0,.86)",
-    "rgba(130,0,255,.82)",
-    "rgba(255,255,255,.94)",
+    "rgba(255,57,57,.92)",
+    "rgba(255,224,0,.95)",
+    "rgba(0,245,255,.84)",
+    "rgba(130,0,255,.8)",
+    "rgba(255,255,255,.96)",
   ];
 
-  return Array.from({ length: 18 }, (_, index) => {
-    const left = (seed * 17 + index * 29) % 92;
-    const top = (seed * 11 + index * 19) % 82;
+  return Array.from({ length: 20 }, (_, index) => {
+    const left = (seed * 17 + index * 27) % 92;
+    const top = (seed * 9 + index * 21) % 84;
     const width = 8 + ((seed + index * 7) % 18);
     const height = 4 + ((seed * 3 + index * 5) % 12);
     const color = palette[(seed + index) % palette.length];
@@ -106,8 +106,8 @@ function createGlitchBlocks(seed: number) {
         width: `${width}%`,
         height: `${height}%`,
         background: color,
-        animationDelay: `${(index % 7) * 0.03}s`,
-        animationDuration: `${0.22 + (index % 4) * 0.08}s`,
+        animationDelay: `${(index % 6) * 0.035}s`,
+        animationDuration: `${0.26 + (index % 4) * 0.08}s`,
       },
     };
   });
@@ -148,8 +148,10 @@ export default function EncryptedArticle(props: {
   hint?: string;
   rememberKey?: string;
   autoDecrypt?: boolean;
+  presentation?: Presentation;
+  title?: string;
 }) {
-  const { payload, hint } = props;
+  const { payload, hint, presentation = "page", title } = props;
 
   const [pw, setPw] = useState("");
   const [html, setHtml] = useState<string | null>(null);
@@ -162,42 +164,50 @@ export default function EncryptedArticle(props: {
   const [displayLines, setDisplayLines] = useState<string[]>([]);
 
   const glitchBlocks = useMemo(() => createGlitchBlocks(warningSeed), [warningSeed]);
+  const containerClass = presentation === "panel" ? "h-full" : "mx-auto max-w-[82rem] pb-12";
+  const cardClass =
+    presentation === "panel"
+      ? "relative flex h-full flex-col overflow-hidden rounded-[1.8rem] border border-cyan-200/12 bg-[#04070b]/94 panel-grid panel-noise glow-frame backdrop-blur-md"
+      : "relative overflow-hidden rounded-[1.8rem] border border-cyan-200/12 bg-[#04070b]/94 panel-grid panel-noise glow-frame backdrop-blur-md";
+  const decodeWidth = presentation === "panel" ? 32 : 40;
 
   useEffect(() => {
     if (stage !== "revealing" || sourceLines.length === 0) return undefined;
 
     let tick = 0;
+    let startTimer: number | undefined;
     let settleTimer: number | undefined;
-    const total = sourceLines.length;
+    let intervalTimer: number | undefined;
+    const ticksPerLine = 4;
+    const totalTicks = sourceLines.length * ticksPerLine + 8;
 
-    setDisplayLines(sourceLines.map((line, index) => scrambleLine(line, 0, index * 3 + warningSeed)));
+    setDisplayLines(sourceLines.map((line, index) => scrambleLine(line, 0, warningSeed + index * 7)));
 
-    const timer = window.setInterval(() => {
-      tick += 1;
-      const revealLine = Math.min(total, tick * 2);
+    startTimer = window.setTimeout(() => {
+      intervalTimer = window.setInterval(() => {
+        tick += 1;
 
-      setDisplayLines(
-        sourceLines.map((line, index) => {
-          if (index > revealLine) {
-            return scrambleLine(line, 0, tick + index * 5);
-          }
+        setDisplayLines(
+          sourceLines.map((line, index) => {
+            if (!line) return "";
+            const revealRatio = Math.min(1, Math.max(0, (tick - index * ticksPerLine) / ticksPerLine));
+            return scrambleLine(line, revealRatio, tick + index * 9);
+          }),
+        );
 
-          const revealRatio = Math.min(1, Math.max(0, (tick - index * 0.34) / 4.2));
-          return scrambleLine(line, revealRatio, tick + index * 7);
-        }),
-      );
-
-      if (revealLine >= total) {
-        window.clearInterval(timer);
-        settleTimer = window.setTimeout(() => {
-          setStage("unlocked");
-          setStatusLine("VERIFIED");
-        }, 220);
-      }
-    }, 36);
+        if (tick >= totalTicks) {
+          if (intervalTimer) window.clearInterval(intervalTimer);
+          settleTimer = window.setTimeout(() => {
+            setStage("unlocked");
+            setStatusLine("VERIFIED");
+          }, 260);
+        }
+      }, 58);
+    }, 260);
 
     return () => {
-      window.clearInterval(timer);
+      if (startTimer) window.clearTimeout(startTimer);
+      if (intervalTimer) window.clearInterval(intervalTimer);
       if (settleTimer) window.clearTimeout(settleTimer);
     };
   }, [sourceLines, stage, warningSeed]);
@@ -217,22 +227,23 @@ export default function EncryptedArticle(props: {
     setLoading(true);
     setStage("verifying");
     setStatusLine("CHECKING");
-    setProgress(18);
+    setProgress(16);
 
     try {
-      await wait(120);
+      await wait(150);
       setStatusLine("MATCHING");
-      setProgress(44);
+      setProgress(42);
 
       const out = await decryptEncryptedPayload(payload, password);
-      const previewLines = wrapPlainText(stripHtmlTags(out), 38);
+      const previewLines = wrapPlainText(stripHtmlTags(out), decodeWidth);
 
       setStatusLine("DECODING");
-      setProgress(82);
-      await wait(160);
+      setProgress(78);
+      await wait(220);
 
       setHtml(out);
       setSourceLines(previewLines);
+      setDisplayLines(previewLines.map((line, index) => scrambleLine(line, 0, index * 5 + warningSeed)));
       setStage("revealing");
       setProgress(100);
     } catch {
@@ -248,143 +259,125 @@ export default function EncryptedArticle(props: {
     }
   }
 
-  if (stage === "unlocked" && html) {
-    return (
-      <section className="mx-auto max-w-[82rem] pb-12">
-        <div className="overflow-hidden rounded-[1.8rem] border border-slate-200/15 bg-[#05070a]/92 panel-grid panel-noise glow-frame">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
-            <div>
-              <div className="text-[0.72rem] font-benderBold tracking-[0.35em] text-white/45">SEALED ARCHIVE</div>
-              <div className="mt-2 text-[1.4rem] font-benderBold tracking-[0.08em] text-white">{"\u6863\u6848\u89e3\u5c01"}</div>
-            </div>
-            <div className="rounded-full border border-slate-200/20 bg-slate-200/10 px-4 py-2 text-[0.72rem] font-benderBold tracking-[0.32em] text-slate-100">
-              ACCESS // VERIFIED
-            </div>
-          </div>
-
-          <article className="sealed-article-body px-6 py-7 animate-[article-fade-in_.45s_ease]" dangerouslySetInnerHTML={{ __html: html }} />
-        </div>
-      </section>
-    );
-  }
+  const headerTitle = title ?? "\u5c01\u5b58\u6863\u6848";
 
   return (
-    <>
-      <section className="mx-auto max-w-[74rem] pb-12">
-        <div
-          className={[
-            "relative overflow-hidden rounded-[2rem] border border-slate-200/14 bg-[#05070a]/92 px-6 py-6 panel-grid panel-noise glow-frame backdrop-blur-md transition-all duration-300",
-            stage === "verifying" || stage === "revealing" ? "scanlines" : "",
-            stage === "bad" ? "archive-shake border-rose-300/30" : "",
-          ].join(" ")}
-        >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(255,255,255,.08),transparent_24%),radial-gradient(circle_at_76%_22%,rgba(255,255,255,.05),transparent_20%),linear-gradient(180deg,rgba(255,255,255,.02),rgba(2,6,23,.18)_30%,rgba(2,6,23,.5))]" />
+    <section className={containerClass}>
+      <div className={cardClass}>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(255,255,255,.08),transparent_24%),radial-gradient(circle_at_76%_22%,rgba(56,189,248,.08),transparent_20%),linear-gradient(180deg,rgba(255,255,255,.02),rgba(2,6,23,.16)_30%,rgba(2,6,23,.52))]" />
 
-          {stage === "revealing" && (
-            <div className="pointer-events-none absolute inset-0 overflow-hidden">
-              <div className="absolute inset-y-0 left-[-18%] w-[20%] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,.32),transparent)]" style={{ animation: "decode-sweep 1.1s ease-out forwards" }} />
+        {stage === "revealing" && (
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute inset-y-0 left-[-18%] w-[18%] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,.34),transparent)]" style={{ animation: "decode-sweep 1.4s ease-out forwards" }} />
+          </div>
+        )}
+
+        <div className={`relative ${presentation === "panel" ? "flex h-full flex-col" : ""}`}>
+          <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 px-6 py-4">
+            <div>
+              <div className="text-[0.72rem] font-benderBold tracking-[0.36em] text-white/42">SEALED ARCHIVE</div>
+              <div className="mt-2 text-[1.42rem] font-benderBold tracking-[0.08em] text-white">{headerTitle}</div>
             </div>
-          )}
 
-          <div className="relative">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <div className="text-[0.72rem] font-benderBold tracking-[0.38em] text-white/45">SEALED ENTRY</div>
-                <div className="mt-3 text-[2rem] font-benderBold tracking-[0.08em] text-white portrait:text-[1.55rem]">
-                  {"\u6863\u6848\u9a8c\u8bc1"}
+            <div className="rounded-full border border-cyan-200/18 bg-cyan-200/8 px-4 py-2 text-[0.72rem] font-n15eMedium tracking-[0.34em] text-cyan-100/90">
+              {statusLine}
+            </div>
+          </div>
+
+          {stage === "unlocked" && html ? (
+            <div className={`min-h-0 ${presentation === "panel" ? "flex-1 overflow-y-auto px-6 py-6" : "px-6 py-6"}`}>
+              <article className="sealed-article-body animate-[article-fade-in_.55s_ease]" dangerouslySetInnerHTML={{ __html: html }} />
+            </div>
+          ) : (
+            <div className={`min-h-0 ${presentation === "panel" ? "flex flex-1 flex-col overflow-hidden" : ""}`}>
+              <div className="px-6 pt-6">
+                <div className="rounded-[1.35rem] border border-white/10 bg-black/28 p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="text-[0.72rem] font-benderBold tracking-[0.34em] text-white/45">UNSEAL PROGRESS</div>
+                    <div className="text-[0.72rem] font-benderBold tracking-[0.28em] text-white/55">{String(progress).padStart(2, "0")}%</div>
+                  </div>
+                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/8">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        stage === "bad" ? "bg-[#ffb800]" : "bg-gradient-to-r from-sky-300 via-cyan-300 to-slate-100"
+                      }`}
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <div className="mt-4 text-[0.9rem] leading-7 text-white/66">{hint ?? "\u8f93\u5165\u5bc6\u7801\u540e\u5f00\u59cb\u9a8c\u8bc1\u3002"}</div>
+                </div>
+
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <input
+                    type="password"
+                    value={pw}
+                    onChange={(event) => resetSignal(event.target.value)}
+                    placeholder="\u8f93\u5165\u5bc6\u94a5"
+                    className="h-[3.5rem] flex-1 rounded-[1.1rem] border border-white/10 bg-black/40 px-4 text-white outline-none transition-colors duration-300 focus:border-cyan-300/35"
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter") return;
+                      event.preventDefault();
+                      void onDecrypt();
+                    }}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => void onDecrypt()}
+                    disabled={loading || !pw.trim()}
+                    className="h-[3.5rem] rounded-[1.1rem] border border-cyan-300/22 bg-cyan-300/12 px-5 text-[0.82rem] font-benderBold tracking-[0.28em] text-cyan-100 transition-colors duration-300 hover:bg-cyan-300/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {loading ? "UNSEALING..." : "BEGIN UNSEAL"}
+                  </button>
                 </div>
               </div>
 
-              <div className="rounded-full border border-slate-200/20 bg-slate-200/10 px-4 py-2 text-[0.72rem] font-benderBold tracking-[0.32em] text-slate-100">
-                {statusLine}
-              </div>
-            </div>
-
-            <div className="mt-8 rounded-[1.4rem] border border-white/10 bg-black/30 p-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="text-[0.72rem] font-benderBold tracking-[0.34em] text-white/45">UNSEAL PROGRESS</div>
-                <div className="text-[0.72rem] font-benderBold tracking-[0.28em] text-white/55">{String(progress).padStart(2, "0")}%</div>
-              </div>
-              <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/8">
-                <div
-                  className={`h-full rounded-full transition-all duration-300 ${
-                    stage === "bad" ? "bg-rose-300" : "bg-gradient-to-r from-sky-300 via-cyan-300 to-slate-100"
-                  }`}
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <div className="mt-4 text-[0.9rem] leading-7 text-white/68">{hint ?? "\u8f93\u5165\u5bc6\u7801\u540e\u5f00\u59cb\u9a8c\u8bc1\u3002"}</div>
-            </div>
-
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <input
-                type="password"
-                value={pw}
-                onChange={(event) => resetSignal(event.target.value)}
-                placeholder="\u8f93\u5165\u5bc6\u94a5"
-                className="h-[3.5rem] flex-1 rounded-[1.1rem] border border-white/10 bg-black/40 px-4 text-white outline-none transition-colors duration-300 focus:border-sky-300/35"
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter") return;
-                  event.preventDefault();
-                  void onDecrypt();
-                }}
-              />
-
-              <button
-                type="button"
-                onClick={() => void onDecrypt()}
-                disabled={loading || !pw.trim()}
-                className="h-[3.5rem] rounded-[1.1rem] border border-sky-300/20 bg-sky-300/12 px-5 text-[0.82rem] font-benderBold tracking-[0.28em] text-sky-100 transition-colors duration-300 hover:bg-sky-300/20 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {loading ? "UNSEALING..." : "BEGIN UNSEAL"}
-              </button>
-            </div>
-
-            {stage === "revealing" && (
-              <div className="mt-8 overflow-hidden rounded-[1.45rem] border border-white/10 bg-black/42">
-                <div className="border-b border-white/10 px-5 py-4">
-                  <div className="text-[0.66rem] font-benderBold tracking-[0.3em] text-white/38">TEXT RESTORE</div>
-                </div>
-                <div className="relative overflow-hidden px-5 py-5">
-                  <div className="absolute inset-0 panel-grid opacity-[0.08]" />
-                  <div className="relative space-y-1 font-mono text-[0.84rem] leading-6 text-sky-100/78">
-                    {displayLines.map((line, index) => (
-                      <div
-                        key={`${index}-${line.slice(0, 12)}`}
-                        className="origin-left transition-all duration-300"
-                        style={{ animation: "decode-line-in .28s ease" }}
-                      >
-                        {line || "\u00A0"}
+              {stage === "revealing" && (
+                <div className={`min-h-0 flex-1 ${presentation === "panel" ? "overflow-y-auto" : ""}`}>
+                  <div className="mx-6 mt-8 overflow-hidden rounded-[1.45rem] border border-white/10 bg-black/42">
+                    <div className="border-b border-white/10 px-5 py-4">
+                      <div className="text-[0.66rem] font-benderBold tracking-[0.3em] text-white/38">TEXT RESTORE</div>
+                    </div>
+                    <div className="relative overflow-hidden px-5 py-5">
+                      <div className="absolute inset-0 panel-grid opacity-[0.08]" />
+                      <div className="relative space-y-1 font-mono text-[0.84rem] leading-6 text-cyan-100/78">
+                        {displayLines.map((line, index) => (
+                          <div
+                            key={`${index}-${line.slice(0, 12)}`}
+                            className="origin-left transition-all duration-300"
+                            style={{ animation: "decode-line-in .32s ease" }}
+                          >
+                            {line || "\u00A0"}
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
-      </section>
 
-      {stage === "bad" && (
-        <>
-          <div className="pointer-events-none fixed inset-0 z-[70] overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,.04),transparent_42%)] opacity-50" />
+        {stage === "bad" && (
+          <div className="pointer-events-none absolute inset-0 z-[4] overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,.05),transparent_42%)] opacity-55" />
             {glitchBlocks.map((block) => (
               <span key={block.id} className="gpu-glitch-block absolute" style={block.style} />
             ))}
-          </div>
 
-          <div key={warningSeed} className="pointer-events-none fixed inset-x-0 top-1/2 z-[80] -translate-y-1/2">
-            <div className="warning-banner mx-auto flex min-h-[11rem] w-full max-w-none items-center justify-center border-y border-white/20 bg-[linear-gradient(90deg,rgba(0,0,0,.72),rgba(17,24,39,.82),rgba(0,0,0,.72))] px-6 py-5 text-center backdrop-blur-md">
-              <div className="space-y-1 font-benderBold text-rose-100">
-                <div className="text-[1.15rem] tracking-[0.5em]">---⚠⚠⚠---</div>
-                <div className="text-[1.05rem] tracking-[0.42em]">---warning---</div>
-                <div className="text-[2rem] tracking-[0.18em] portrait:text-[1.45rem]">---{"\u6863\u6848\u65e0\u6743\u67e5\u770b"}---</div>
+            <div key={warningSeed} className="absolute inset-x-0 top-1/2 -translate-y-1/2 px-0">
+              <div className="warning-banner mx-auto flex min-h-[9.8rem] w-full items-center justify-center border-y border-[#ffe699]/70 bg-[#ffcf33]/94 px-6 py-5 text-center shadow-[0_0_48px_rgba(255,207,51,.28)]">
+                <div className="space-y-1 font-n15eMedium text-[#a4001a]">
+                  <div className="text-[1.15rem] tracking-[0.5em]">---⚠⚠⚠---</div>
+                  <div className="text-[1.05rem] tracking-[0.42em]">---warning---</div>
+                  <div className="text-[2rem] tracking-[0.18em] portrait:text-[1.45rem]">---{"\u6863\u6848\u65e0\u6743\u67e5\u770b"}---</div>
+                </div>
               </div>
             </div>
           </div>
-        </>
-      )}
-    </>
+        )}
+      </div>
+    </section>
   );
 }
