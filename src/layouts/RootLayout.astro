@@ -1,5 +1,6 @@
 ---
 import type { SubNavigationItem } from "../_types/SubNavigationItem";
+import arknightsConfig from "../../arknights.config";
 import "../_styles/base.css";
 import FontFace from "../_styles/FontFace.astro";
 import Scrollbar from "../_styles/Scrollbar.astro";
@@ -19,18 +20,22 @@ interface Props {
 
 const base = import.meta.env.BASE_URL;
 const { lang, title, description, subNavigationItems } = Astro.props as Props;
+const pageLang = lang ?? arknightsConfig.language;
+const pageDescription = description ?? arknightsConfig.description;
+const siteTitle = arknightsConfig.title;
+const pageTitle = !title || title === siteTitle ? siteTitle : `${title} - ${siteTitle}`;
 ---
 
 <!DOCTYPE html>
-<html lang={lang} class="h-full bg-black" style="font-size: 16px">
+<html lang={pageLang} class="h-full bg-black" style="font-size: 16px">
   <head>
     <meta charset="UTF-8" />
-    <meta name="description" content={description} />
+    <meta name="description" content={pageDescription} />
     <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href={base + "favicon.svg"} />
     <meta name="generator" content={Astro.generator} />
     <base target="_blank" />
-    <title>{title}</title>
+    <title>{pageTitle}</title>
 
     <FontFace />
     <Scrollbar />

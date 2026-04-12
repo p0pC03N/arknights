@@ -3,9 +3,10 @@ import {getCollection} from "astro:content";
 // import {Debug} from 'astro:components'
 import InfoLayout from "../../layouts/InfoLayout.astro";
 import GoBackTool from "../../components/GoBackTool";
+import { filterPublishedEntries, sortBlogEntries } from "../../content/utils";
 
 export async function getStaticPaths() {
-    const allBlog = await getCollection("blog")
+    const allBlog = sortBlogEntries(filterPublishedEntries(await getCollection("blog")));
 
     return allBlog.map(entry => ({
         params: {slug: entry.slug},

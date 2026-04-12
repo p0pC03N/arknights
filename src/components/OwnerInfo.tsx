@@ -9,7 +9,6 @@ import {
     IconTapTap,
     IconWechat,
     IconWeibo,
-    LogoRhodesIsland,
 } from "./SvgIcons"
 import {isOwnerInfoOpen} from "./store/rootLayoutStore.ts"
 import {useStore} from "@nanostores/react"
@@ -49,12 +48,12 @@ function Welcome() {
     const slogan = arknightsConfig?.navbar?.ownerInfo?.slogan
         ? <div
             className="w-[10.75rem] portrait:w-[17.75rem] text-[1rem] portrait:text-[1.625rem] font-bold mt-8 ml-11 portrait:ml-[8.5rem] break-words hyphens-auto text-ellipsis">
-            {/* TODO: 换个字体 */}
             {arknightsConfig.navbar.ownerInfo.slogan}
         </div>
-        : <img className="w-[10.75rem] portrait:w-[17.75rem] h-auto ml-[2.875rem] portrait:ml-[8rem] block"
-               src={import.meta.env.BASE_URL + "images/stroke_text-rhodes_island.png"}
-               alt="Rhodes Island"/>
+        : <div
+            className="w-[10.75rem] portrait:w-[17.75rem] text-[0.875rem] portrait:text-[1.25rem] font-benderBold tracking-[0.3em] mt-8 ml-11 portrait:ml-[8.5rem] text-white/70">
+            PERSONAL ARCHIVE ONLINE
+        </div>
 
     return <>
         <Divider>WELCOME</Divider>
@@ -62,10 +61,6 @@ function Welcome() {
             <div className={"w-full absolute top-[2.375rem] portrait:top-[1rem]"}>
                 {name}
                 {slogan}
-                {/*
-                <div className="text-[1.125rem] portrait:text-[1.875rem] ml-[2.875rem] portrait:ml-[8rem] mt-[.25rem] font-bold">Please login.</div>
-                <div className="text-[1rem] portrait:text-[1.625rem] ml-[2.875rem] portrait:ml-[8rem]">请先登入您的账号。</div>
-                */}
             </div>
         </div>
     </>
@@ -145,9 +140,10 @@ export default function OwnerInfo(): React.JSX.Element {
             + " portrait:-translate-x-1/2 portrait:-translate-y-1/2 portrait:scale-100"
             + (($isOwnerInfoOpen ? "" : " translate-x-full portrait:translate-y-full"))}>
             <div className="w-full h-full absolute top-0 left-0">
-                <div className={"h-[59.375rem] portrait:h-[55rem] text-[#06bbff]"
-                    + " absolute top-[-2rem] left-[-18.75rem] portrait:left-[-5rem] portrait:z-[-1]"}>
-                    <LogoRhodesIsland className="w-auto h-full pointer-events-none"/>
+                <div className={"absolute top-[3rem] left-[-4.5rem] portrait:left-[1rem] portrait:top-[2rem]"
+                    + " text-white/10 font-oswaldMedium text-[5rem] portrait:text-[8rem] tracking-[0.18em]"
+                    + " [writing-mode:vertical-rl] select-none pointer-events-none"}>
+                    {arknightsConfig?.navbar?.ownerInfo?.name ?? "CORN KINGDOM"}
                 </div>
             </div>
             <div className="relative pt-[5.875rem] portrait:pt-[2rem]">
@@ -158,16 +154,9 @@ export default function OwnerInfo(): React.JSX.Element {
                 <div className={"relative portrait:static pl-[2.5rem] pr-[1.25rem]"
                     + " portrait:pl-[8rem] portrait:pr-[6.75rem]"}>
                     {
-                        // TODO: 感觉有点和上面 <ToolBox/> 功能重复
                         arknightsConfig?.navbar?.ownerInfo?.footerLinks?.map((item, index) =>
                             <FooterLink key={index} {...item}/>) ?? null
                     }
-
-                    {/*
-                    <BoxButton label="客服中心" url="" portraitHidden/>
-                    <BoxButton label="立即登入" url=""/>
-                    <BoxButton label="前往注册" url=""/>
-                    */}
                 </div>
                 <CloseButton/>
             </div>

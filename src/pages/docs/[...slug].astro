@@ -2,10 +2,10 @@
 import {getCollection} from 'astro:content'
 // import {Debug} from 'astro:components'
 import DocsLayout from "../../layouts/DocsLayout.astro"
-import {trimSlugPrefix} from '../../components/DocsCollectionsUtils'
+import { filterPublishedEntries, sortDocEntries, trimSlugPrefix } from '../../content/utils'
 
 export async function getStaticPaths() {
-    return (await getCollection("docs")).map(entry => ({
+    return sortDocEntries(filterPublishedEntries(await getCollection("docs"))).map(entry => ({
         params: {slug: trimSlugPrefix(entry.slug)},
         props: {entry},
     }))

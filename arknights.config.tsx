@@ -1,16 +1,15 @@
-import React from "react";
 import type { ArknightsConfig } from "./src/_types/ArknightsConfig";
-import { CopyrightMini, IconArchive, IconGitHub, TitleArknights } from "./src/components/SvgIcons";
+import { CopyrightMini, IconArchive, IconGitHub } from "./src/components/SvgIcons";
 
 const base = import.meta.env.BASE_URL;
 
 const config: ArknightsConfig = {
   title: "玉米王国",
-  description: "一个退游博士的个人博客",
+  description: "逆向、CTF 与个人记录站",
   language: "zh",
 
   bgm: {
-    autoplay: false, // 想“尽量自动”就改 true（但浏览器仍要求首次交互）
+    autoplay: false,
     src: base + "audios/bgm.mp3",
   },
 
@@ -18,9 +17,7 @@ const config: ArknightsConfig = {
     logo: {
       element: () => (
         <div className="w-full h-full flex flex-col justify-center text-white leading-none pointer-events-none select-none">
-          <div className="font-oswaldMedium text-[1.65rem] portrait:text-[2.2rem] tracking-[0.18em]">
-            玉米
-          </div>
+          <div className="font-oswaldMedium text-[1.65rem] portrait:text-[2.2rem] tracking-[0.18em]">玉米</div>
           <div className="text-[0.55rem] portrait:text-[0.8rem] tracking-[0.35em] text-[#bdbdbd] mt-1">
             CORN KINGDOM
           </div>
@@ -31,10 +28,10 @@ const config: ArknightsConfig = {
 
     items: [
       { title: "INDEX", subtitle: "首页", href: base + "#index" },
-      { title: "INFORMATION", subtitle: "情报", href: base + "#information" },
-      { title: "OPERATOR", subtitle: "干员", href: base + "#operator" },
-      { title: "WORLD", subtitle: "设定", href: base + "#world" },
-      { title: "MEDIA", subtitle: "泰拉万象", href: base + "#media" },
+      { title: "SIGNAL", subtitle: "动态", href: base + "#information" },
+      { title: "PROFILE", subtitle: "名片", href: base + "#operator" },
+      { title: "DOSSIER", subtitle: "归档", href: base + "#world" },
+      { title: "ARCHIVE", subtitle: "封存", href: base + "#media" },
       { title: "MORE", subtitle: "更多内容", href: base + "#more" },
     ],
 
@@ -54,15 +51,15 @@ const config: ArknightsConfig = {
   },
 
   pageTracker: {
-    microInfo: "ARKNIGHTS",
-    labels: ["HOMEPAGE", "INFORMATION", "OPERATOR", "WORLD", "MEDIA", "MORE"],
+    microInfo: "CORN KINGDOM",
+    labels: ["HOMEPAGE", "SIGNAL", "PROFILE", "DOSSIER", "ARCHIVE", "MORE"],
   },
 
   rootPage: {
     INDEX: {
-      title: "ARKNIGHTS",
-      subtitle: "RHODES ISLAND",
-      url: "HTTPS://ARKNIGHTS.ASTRO.YUE.ZONE/",
+      title: "CORN KINGDOM",
+      subtitle: "PERSONAL ARCHIVE",
+      url: "HTTPS://P0PC03N.GITHUB.IO/ARKNIGHTS/",
       copyright: <CopyrightMini className="pointer-events-none" />,
       heroActions: [
         {
@@ -79,8 +76,8 @@ const config: ArknightsConfig = {
               <path d="M856.874667 448l51.285333 30.762667a21.333333 21.333333 0 0 1 0 36.608L512 753.066667l-396.16-237.696a21.333333 21.333333 0 0 1 0-36.608l51.285333-30.762667L512 654.933333l344.874667-206.933333z m0 200.533333l51.285333 30.762667a21.333333 21.333333 0 0 1 0 36.608l-374.186667 224.512a42.666667 42.666667 0 0 1-43.946666 0l-374.186667-224.512a21.333333 21.333333 0 0 1 0-36.608l51.285333-30.762667L512 855.466667l344.874667-206.933334zM533.930667 55.850667l374.229333 224.512a21.333333 21.333333 0 0 1 0 36.608L512 554.666667 115.84 316.970667a21.333333 21.333333 0 0 1 0-36.608l374.186667-224.512a42.666667 42.666667 0 0 1 43.946666 0z" />
             </svg>
           ),
-          label: "博客 - Blog",
-          subLabel: "Blog",
+          label: "博客日志",
+          subLabel: "Blog Journal",
           target: "_self",
           href: base + "blog/",
           className: "text-black bg-end-yellow border-[#fe2] hover:border-white font-bold font-benderBold",
@@ -101,26 +98,27 @@ const config: ArknightsConfig = {
         autoplay: { delay: 5000 },
         data: [
           {
-            title: "用户文档",
-            subtitle: "User Documentation",
-            date: "2024 // 08 / 21",
-            url: "HTTPS://ARKNIGHTS.ASTRO.YUE.ZONE/",
+            title: "技术文档",
+            subtitle: "Technical Notes",
+            date: "2026 // 01 / 14",
+            url: "HTTPS://P0PC03N.GITHUB.IO/ARKNIGHTS/",
             href: base + "docs/",
             image: base + "info-swiper/UserDocumentation.jpg",
           },
           {
-            title: "开发者文档",
-            subtitle: "Developer Documentation",
-            date: "2024 // 08 / 21",
-            url: "HTTPS://ARKNIGHTS.ASTRO.YUE.ZONE/",
-            href: base + "docs/",
+            title: "博客日志",
+            subtitle: "Blog Journal",
+            date: "2026 // 01 / 01",
+            url: "HTTPS://P0PC03N.GITHUB.IO/ARKNIGHTS/",
+            href: base + "blog/",
             image: base + "info-swiper/DeveloperDocumentation.jpg",
           },
           {
-            title: "博客 - Blog",
-            date: "2024 // 08 / 21",
-            url: "HTTPS://ARKNIGHTS.ASTRO.YUE.ZONE/",
-            href: base + "blog/",
+            title: "封存档案",
+            subtitle: "Sealed Archive",
+            date: "2026 // 01 / 23",
+            url: "HTTPS://P0PC03N.GITHUB.IO/ARKNIGHTS/",
+            href: base + "terra-omnia/secret-02",
             image: base + "info-swiper/Blog.jpg",
           },
         ],
@@ -141,43 +139,64 @@ const config: ArknightsConfig = {
     WORLD: {
       items: [
         {
-          title: "源石",
-          subTitle: "ORIGINIUMS",
+          title: "逆向工程",
+          subTitle: "REVERSE",
           imageUrl: "/images/03-world/originiums.png",
-          description:
-            '大地被起因不明的天灾四处肆虐，经由天灾卷过的土地上出现了大量的神秘矿物——"源石"。依赖于技术的进步，源石蕴含的能量投入工业后使得文明顺利迈入现代，与此同时，源石本身也催生出"感染者"的存在。',
+          description: "记录程序分析、调试路径和逆向过程，用博客和专题文档沉淀方法而不是只堆结论。",
         },
-        { title: "源石技艺", subTitle: "ORIGINIUM ARTS", imageUrl: "/images/03-world/originium_arts.png", description: "源石技艺的描述..." },
-        { title: "整合运动", subTitle: "REUNION", imageUrl: "/images/03-world/reunion.png", description: "整合运动的描述..." },
-        { title: "感染者", subTitle: "INFECTED", imageUrl: "/images/03-world/infected.png", description: "感染者的描述..." },
-        { title: "移动城邦", subTitle: "NOMADIC CITY", imageUrl: "/images/03-world/nomadic_city.png", description: "移动城邦的描述..." },
-        { title: "罗德岛", subTitle: "RHODES ISLAND", imageUrl: "/images/03-world/rhodes_island.png", description: "罗德岛的描述..." },
+        {
+          title: "CTF 题解",
+          subTitle: "WRITEUPS",
+          imageUrl: "/images/03-world/originium_arts.png",
+          description: "把比赛题解、漏洞链条和踩坑过程整理成可复盘的档案，方便后续二次训练。",
+        },
+        {
+          title: "工具链",
+          subTitle: "TOOLCHAIN",
+          imageUrl: "/images/03-world/reunion.png",
+          description: "收纳脚本、环境配置、自动化发布与开发经验，逐步把站点变成能反哺工作的工具库。",
+        },
+        {
+          title: "站点文档",
+          subTitle: "DOCS",
+          imageUrl: "/images/03-world/infected.png",
+          description: "把博客仓库的结构、发布规则和页面约定全部写清楚，降低后续维护和迁移成本。",
+        },
+        {
+          title: "年度记录",
+          subTitle: "YEARBOOK",
+          imageUrl: "/images/03-world/nomadic_city.png",
+          description: "用于归档阶段性总结、项目节点和个人记录，让内容不只是一串离散文章。",
+        },
+        {
+          title: "封存档案",
+          subTitle: "ARCHIVE",
+          imageUrl: "/images/03-world/rhodes_island.png",
+          description: "放置带密码的实验性内容和需要额外入口控制的页面，保留神秘感但不伪装成强安全方案。",
+        },
       ],
     },
 
     MEDIA: {
-      // 右侧固定一张图（像友链那样一直显示）
       rightImage: base + "images/terra/right.jpg",
-
-      // 左侧 3/10 文章列表（你自己维护列表就行）
       articles: [
         {
-          title: "加密文档-01",
-          subTitle: "SECRET",
+          title: "封存档案-01",
+          subTitle: "SEALED",
           date: "2026 // 01 / 18",
           href: base + "terra-omnia/secret-01",
           locked: true,
         },
         {
-          title: "加密文档-02",
-          subTitle: "SECRET",
+          title: "封存档案-02",
+          subTitle: "SEALED",
           date: "2026 // 01 / 23",
           href: base + "terra-omnia/secret-02",
           locked: true,
         },
       ],
     },
-  }, 
+  },
 };
 
 export default config;

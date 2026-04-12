@@ -3,8 +3,9 @@ import { getCollection } from "astro:content";
 import InfoLayout from "../../layouts/InfoLayout.astro";
 import InfoCard from "../../components/InfoCard.astro";
 import GoBackTool from "../../components/GoBackTool";
+import { filterPublishedEntries, sortDocEntries } from "../../content/utils";
 
-const allDocs = await getCollection("docs");
+const allDocs = sortDocEntries(filterPublishedEntries(await getCollection("docs")));
 ---
 
 <InfoLayout title="DOCS" subTitle="文档" tabTitle="文档">

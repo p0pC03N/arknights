@@ -1,5 +1,6 @@
 ---
 import type { CollectionEntry } from 'astro:content';
+import { getEntryDisplayDate, getEntryUrl } from "../content/utils";
 
 interface Props {
     index: number;
@@ -11,17 +12,20 @@ const index = Astro.props.index;
 const item = Astro.props.item;
 
 const collection = item?.collection ?? "blog";
-const thumbnail = base + "info-thumbnail/" + (item?.data?.thumbnail ?? "ACTIVITY.jpg");
+const thumbnailName = typeof item?.data?.thumbnail === "string" && item.data.thumbnail.trim()
+    ? item.data.thumbnail.trim()
+    : "ACTIVITY.jpg";
+const thumbnail = base + "info-thumbnail/" + thumbnailName;
 const title = item?.data?.title ?? item?.id ?? "";
-const href = item ? (base + collection + "/" + item.slug) : "";
-const [year, month, day] = item?.id?.split("-") ?? ["yyyy", "MM", "dd"];
+const href = item ? getEntryUrl(item) : "";
+const displayDate = item ? getEntryDisplayDate(item) : "未设置日期";
 const category =
-    item?.data?.category ??
+    (typeof item?.data?.category === "string" && item.data.category.trim() ? item.data.category.trim() : undefined) ??
     (collection === "docs" ? "DOCS" : "BLOG");
 ---
 
 {
-    item && <a target="_blank" {...{href, title}}
+    item && <a target="_self" {...{href, title}}
                class={"w-[38.25rem] portrait:w-full h-[17rem] text-inherit hover:text-ark-blue no-underline inline-block relative pt-[3.25rem] cursor-pointer"
                    + ((index % 2 === 0) ? " landscape:pr-10" : " landscape:pl-10 landscape:top-12")}>
         <img class="w-full h-[9.875rem] portrait:h-auto object-cover object-center block"
@@ -29,7 +33,7 @@ const category =
         <div class="mt-2 flex whitespace-nowrap transition-[color] duration-300">
             <div class="text-ark-blue text-[1.125rem] font-bold mr-12 flex-none">{category}</div>
             <div class="text-[1.125rem] font-bold flex-none mr-12">
-                <div class="text-[.875rem] font-benderRegular">{`${year} // ${month} / ${day}`}</div>
+                <div class="text-[.875rem] font-benderRegular">{displayDate}</div>
                 <div class="text-[1.25rem] leading-[1.4] font-bold truncate">{title}</div>
             </div>
         </div>
