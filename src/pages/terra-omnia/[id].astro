@@ -37,7 +37,7 @@ const headings: any[] = [];
 <DocsLayout title={title} headings={headings} showKnowledgeMap={false}>
   {
     payload ? (
-      <EncryptedArticle client:load payload={payload} autoDecrypt={true} />
+      <EncryptedArticle client:load payload={payload} autoDecrypt={false} />
     ) : (
       <article>
         <h2>未找到加密文档</h2>

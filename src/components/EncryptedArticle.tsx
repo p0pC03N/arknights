@@ -15,6 +15,36 @@ function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function stripHtmlTags(value: string) {
+  return value
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function chunkText(value: string, size: number) {
+  const chunks: string[] = [];
+  for (let index = 0; index < value.length; index += size) {
+    chunks.push(value.slice(index, index + size));
+  }
+  return chunks.filter(Boolean);
+}
+
+function scrambleLine(line: string, revealRatio: number) {
+  const glyphs = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>/[]{}#*%$";
+  return line
+    .split("")
+    .map((char, index) => {
+      if (char === " ") return " ";
+      const threshold = index / Math.max(1, line.length - 1);
+      if (threshold < revealRatio) return char;
+      return glyphs[(index * 7 + Math.floor(revealRatio * 31)) % glyphs.length];
+    })
+    .join("");
+}
+
 export function b64ToU8(b64: string): Uint8Array {
   const bin = atob(b64);
   const u8 = new Uint8Array(bin.length);
@@ -54,38 +84,47 @@ export default function EncryptedArticle(props: {
   rememberKey?: string;
   autoDecrypt?: boolean;
 }) {
-  const { payload, hint, rememberKey = "enc_doc_pw", autoDecrypt = false } = props;
+  const { payload, hint } = props;
 
   const [pw, setPw] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [html, setHtml] = useState<string | null>(null);
   const [stage, setStage] = useState<UnlockStage>("locked");
-  const [statusLine, setStatusLine] = useState("WAITING FOR KEY SIGNAL");
+  const [statusLine, setStatusLine] = useState("WAITING FOR KEY");
   const [progress, setProgress] = useState(0);
-  const [glitchSeed, setGlitchSeed] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [warningSeed, setWarningSeed] = useState(0);
+  const [scrambleLines, setScrambleLines] = useState<string[]>([]);
 
-  const glitchLabel = useMemo(
-    () => `NOISE-${glitchSeed.toString(16).toUpperCase().padStart(2, "0")} // ACCESS REJECTED`,
-    [glitchSeed],
-  );
+  const plainPreview = useMemo(() => stripHtmlTags(html ?? ""), [html]);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(rememberKey) ?? "";
-      if (stored) setPw(stored);
-    } catch {
-      // ignore browser storage failures
+    if (stage !== "revealing" || !html) return undefined;
+
+    const sourceLines = chunkText(plainPreview, 28).slice(0, 7);
+    if (sourceLines.length === 0) {
+      setStage("unlocked");
+      return undefined;
     }
-  }, [rememberKey]);
 
-  useEffect(() => {
-    if (!autoDecrypt) return;
-    if (!pw) return;
-    if (html) return;
-    if (loading) return;
-    void onDecrypt();
-  }, [autoDecrypt, html, loading, pw]);
+    let tick = 0;
+    const totalTicks = 14;
+
+    setScrambleLines(sourceLines.map((line) => scrambleLine(line, 0)));
+
+    const timer = window.setInterval(() => {
+      tick += 1;
+      const ratio = Math.min(1, tick / totalTicks);
+      setScrambleLines(sourceLines.map((line) => scrambleLine(line, ratio)));
+
+      if (tick >= totalTicks) {
+        window.clearInterval(timer);
+        setStage("unlocked");
+      }
+    }, 70);
+
+    return () => window.clearInterval(timer);
+  }, [html, plainPreview, stage]);
 
   async function onDecrypt() {
     const password = pw.trim();
@@ -94,46 +133,31 @@ export default function EncryptedArticle(props: {
     setErr(null);
     setLoading(true);
     setStage("verifying");
-    setStatusLine("KEY SIGNAL RECEIVED");
-    setProgress(16);
+    setStatusLine("HASHING KEY SIGNAL");
+    setProgress(18);
 
     try {
-      await wait(180);
-      setStatusLine("VERIFYING PBKDF2 SIGNATURE");
-      setProgress(38);
+      await wait(160);
+      setStatusLine("VERIFYING ARCHIVE SIGNATURE");
+      setProgress(41);
 
       const out = await decryptEncryptedPayload(payload, password);
 
-      setStatusLine("REDUCING CHANNEL NOISE");
-      setProgress(72);
-      await wait(220);
+      setStatusLine("REDUCING VISUAL NOISE");
+      setProgress(73);
+      await wait(180);
 
       setHtml(out);
       setStage("revealing");
-      setStatusLine("ARCHIVE UNSEALED");
+      setStatusLine("RESTORING TEXT LAYERS");
       setProgress(100);
-
-      try {
-        localStorage.setItem(rememberKey, password);
-      } catch {
-        // ignore browser storage failures
-      }
-
-      await wait(460);
-      setStage("unlocked");
     } catch {
       setStage("bad");
-      setStatusLine("UNAUTHORIZED SIGNAL");
-      setErr("密钥不正确，未授权访问。");
-      setProgress(7);
+      setStatusLine("UNAUTHORIZED");
+      setErr("档案无权查看");
+      setProgress(6);
+      setWarningSeed((value) => value + 1);
       setHtml(null);
-      setGlitchSeed((value) => value + 1);
-
-      try {
-        localStorage.removeItem(rememberKey);
-      } catch {
-        // ignore browser storage failures
-      }
     } finally {
       setLoading(false);
     }
@@ -143,13 +167,14 @@ export default function EncryptedArticle(props: {
     setPw(nextValue);
     setErr(null);
     setStage("locked");
-    setStatusLine("WAITING FOR KEY SIGNAL");
+    setStatusLine("WAITING FOR KEY");
     setProgress(0);
+    setScrambleLines([]);
   }
 
   if (stage === "unlocked" && html) {
     return (
-      <section className="mx-auto max-w-[76rem] pb-12">
+      <section className="mx-auto max-w-[78rem] pb-12">
         <div className="mb-6 overflow-hidden rounded-[1.6rem] border border-slate-200/15 bg-[#05070a]/85 panel-grid panel-noise glow-frame">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
             <div>
@@ -161,7 +186,7 @@ export default function EncryptedArticle(props: {
             </div>
           </div>
 
-          <article className="px-6 py-7" dangerouslySetInnerHTML={{ __html: html }} />
+          <article className="sealed-article-body px-6 py-7" dangerouslySetInnerHTML={{ __html: html }} />
         </div>
       </section>
     );
@@ -177,16 +202,21 @@ export default function EncryptedArticle(props: {
         ].join(" ")}
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.08),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(148,163,184,0.12),transparent_30%)]" />
+
         <div
-          className={`absolute inset-0 transition-opacity duration-300 ${
-            stage === "bad" ? "opacity-100" : "opacity-0"
-          }`}
+          className={`absolute inset-0 transition-opacity duration-300 ${stage === "bad" ? "opacity-100" : "opacity-0"}`}
           style={{
+            animation: stage === "bad" ? "contaminated .55s ease forwards" : undefined,
             backgroundImage:
-              "linear-gradient(90deg, rgba(244,63,94,0) 0%, rgba(244,63,94,0.16) 30%, rgba(255,255,255,0.05) 50%, rgba(244,63,94,0.12) 75%, rgba(244,63,94,0) 100%)",
-            transform: `translateX(${glitchSeed % 2 === 0 ? "-1.5%" : "1.5%"})`,
+              "repeating-linear-gradient(180deg, rgba(244,63,94,0.18) 0, rgba(244,63,94,0.18) 2px, transparent 2px, transparent 10px), linear-gradient(90deg, rgba(244,63,94,0) 0%, rgba(244,63,94,0.2) 35%, rgba(34,211,238,0.1) 58%, rgba(244,63,94,0.16) 80%, rgba(244,63,94,0) 100%)",
           }}
         />
+
+        {stage === "revealing" && (
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="absolute inset-y-0 left-[-20%] w-[22%] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent)]" style={{ animation: "decode-sweep .9s ease-out forwards" }} />
+          </div>
+        )}
 
         <div className="relative">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -195,13 +225,10 @@ export default function EncryptedArticle(props: {
               <div className="mt-3 text-[2rem] font-benderBold tracking-[0.08em] text-white portrait:text-[1.55rem]">
                 Access Control Chamber
               </div>
-              <p className="mt-4 max-w-[38rem] text-[1rem] leading-8 text-white/72">
-                输入密钥后会进行本地校验、退噪和解封，再落正文。这里仍是前端弱加密，只承担入口控制，不承担真正保密。
-              </p>
             </div>
 
             <div className="rounded-full border border-slate-200/20 bg-slate-200/10 px-4 py-2 text-[0.72rem] font-benderBold tracking-[0.32em] text-slate-100">
-              {stage === "bad" ? glitchLabel : statusLine}
+              {statusLine}
             </div>
           </div>
 
@@ -219,7 +246,7 @@ export default function EncryptedArticle(props: {
               />
             </div>
             <div className="mt-4 text-[0.9rem] leading-7 text-white/68">
-              {hint ?? "输入密码后开始解封。"}
+              {hint ?? "输入密码后开始验证。"}
             </div>
           </div>
 
@@ -246,6 +273,29 @@ export default function EncryptedArticle(props: {
               {loading ? "UNSEALING..." : "BEGIN UNSEAL"}
             </button>
           </div>
+
+          {stage === "revealing" && (
+            <div className="mt-6 rounded-[1.2rem] border border-white/10 bg-black/35 p-4">
+              <div className="mb-3 text-[0.66rem] font-benderBold tracking-[0.3em] text-white/38">RESTORING TEXT</div>
+              <div className="space-y-2 font-mono text-[0.82rem] leading-6 text-sky-100/75">
+                {scrambleLines.map((line, index) => (
+                  <div key={`${index}-${line.slice(0, 6)}`} style={{ animation: "scramble-blink 1.2s ease-in-out infinite" }}>
+                    {line}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {stage === "bad" && (
+            <div
+              className="mt-6 rounded-[1.2rem] border border-rose-300/30 bg-rose-400/8 px-4 py-4 text-center"
+              key={warningSeed}
+              style={{ animation: "warning-pulse .45s ease forwards" }}
+            >
+              <div className="font-benderBold tracking-[0.35em] text-rose-100">---⚠⚠⚠--- WARNING --- 档案无权查看 ---</div>
+            </div>
+          )}
 
           {err && <div className="mt-4 text-[0.9rem] text-rose-200">{err}</div>}
         </div>

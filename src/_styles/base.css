@@ -2,6 +2,82 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes camp-float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+@keyframes flag-flicker {
+    0%, 100% {
+        opacity: .82;
+        filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.16));
+    }
+
+    50% {
+        opacity: 1;
+        filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.28));
+    }
+}
+
+@keyframes warning-pulse {
+    0% {
+        opacity: 0;
+        transform: translateY(10px) scale(.98);
+    }
+
+    50% {
+        opacity: 1;
+        transform: translateY(0) scale(1.01);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes decode-sweep {
+    0% {
+        transform: translateX(-110%);
+        opacity: 0;
+    }
+
+    30% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateX(110%);
+        opacity: 0;
+    }
+}
+
+@keyframes contaminated {
+    0% {
+        opacity: 0;
+        filter: hue-rotate(0deg);
+    }
+
+    100% {
+        opacity: 1;
+        filter: hue-rotate(-18deg);
+    }
+}
+
+@keyframes scramble-blink {
+    0%, 100% {
+        opacity: .55;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
 
 @layer utilities {
     .text-balance {
@@ -88,4 +164,68 @@
             inset 0 0 0 1px rgba(255, 255, 255, 0.12),
             0 0 40px rgba(148, 163, 184, 0.14);
     }
+}
+
+.docs-map-shell {
+    width: 4.75rem;
+    transition: width .28s ease, box-shadow .28s ease, background-color .28s ease;
+}
+
+.docs-map-shell:hover,
+.docs-map-shell.docs-map-expanded {
+    width: 18.5rem;
+    box-shadow: 0 22px 48px rgba(0, 0, 0, .35);
+}
+
+.docs-map-shell .docs-map-panel {
+    opacity: 0;
+    transform: translateX(14px);
+    pointer-events: none;
+    transition: opacity .22s ease, transform .22s ease;
+}
+
+.docs-map-shell:hover .docs-map-panel,
+.docs-map-shell.docs-map-expanded .docs-map-panel {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+}
+
+.docs-map-shell .docs-map-mini {
+    opacity: 1;
+    transition: opacity .2s ease;
+}
+
+.docs-map-shell:hover .docs-map-mini,
+.docs-map-shell.docs-map-expanded .docs-map-mini {
+    opacity: 0;
+}
+
+.sealed-article-body {
+    max-width: 58rem;
+    margin: 0 auto;
+    line-height: 1.95;
+    letter-spacing: .01em;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.sealed-article-body h1,
+.sealed-article-body h2,
+.sealed-article-body h3,
+.sealed-article-body h4,
+.sealed-article-body h5,
+.sealed-article-body h6 {
+    line-height: 1.25;
+}
+
+.sealed-article-body p,
+.sealed-article-body li,
+.sealed-article-body blockquote {
+    line-height: 1.95;
+}
+
+.sealed-article-body pre,
+.sealed-article-body .astro-code {
+    overflow-x: auto;
 }

@@ -23,61 +23,69 @@ const groups = mapItems.reduce((result, item) => {
 }, [] as { cluster: string; items: typeof mapItems }[]);
 ---
 
-<div class="border-b border-sky-300/15 px-6 pb-5 pt-6">
-  <div class="text-[0.72rem] font-benderBold tracking-[0.38em] text-sky-100/60">KNOWLEDGE MAP</div>
-  <div class="mt-3 text-[1.85rem] font-benderBold tracking-[0.08em] text-white">Docs Network</div>
-  <p class="mt-4 text-[0.92rem] leading-7 text-white/65">
-    章节前缀会映射成路径编号、节点层级和连线。当前节点会在图上保持高亮。
-  </p>
-</div>
+<div class="relative h-full">
+  <div class="docs-map-mini absolute inset-0 flex flex-col items-center justify-between py-5 pointer-events-none">
+    <div class="writing-rl text-[0.72rem] font-benderBold tracking-[0.45em] text-sky-100/60">DOCS MAP</div>
+    <div class="writing-rl text-[0.68rem] font-benderBold tracking-[0.35em] text-white/25">
+      {String(mapItems.length).padStart(2, "0")} NODES
+    </div>
+  </div>
 
-<div id="docs-nav-list" class="grow overflow-y-auto px-4 pb-6">
-  {
-    groups.map((group, groupIndex) => (
-      <section class="pt-5">
-        <div class="px-2 text-[0.72rem] font-benderBold tracking-[0.35em] text-white/35">
-          {String(groupIndex + 1).padStart(2, "0")} // {group.cluster.toUpperCase()}
-        </div>
+  <div class="docs-map-panel h-full flex flex-col">
+    <div class="border-b border-sky-300/15 px-5 pb-4 pt-5">
+      <div class="text-[0.72rem] font-benderBold tracking-[0.38em] text-sky-100/60">KNOWLEDGE MAP</div>
+      <div class="mt-2 text-[1.45rem] font-benderBold tracking-[0.08em] text-white">Docs Network</div>
+    </div>
 
-        <ul class="mt-3 space-y-3">
-          {
-            group.items.map((item, itemIndex) => (
-              <li class="relative">
-                <div
-                  class="absolute left-[1.05rem] top-[1.1rem] h-[calc(100%+1rem)] w-px bg-white/10"
-                  style={{ opacity: itemIndex === group.items.length - 1 ? 0 : 1 }}
-                />
-                <a
-                  target="_self"
-                  href={item.href}
-                  class={`relative block overflow-hidden rounded-[1.2rem] border bg-black/35 px-4 py-4 text-inherit no-underline transition-all duration-300 panel-grid panel-noise ${
-                    item.active
-                      ? "border-sky-300/45 bg-sky-300/10 text-white glow-blue"
-                      : "border-white/10 text-white/75 hover:border-sky-300/30 hover:text-white"
-                  }`}
-                  style={{ marginLeft: `${(item.depth - 1) * 1.15}rem` }}
-                >
-                  <div
-                    class={`absolute left-[-1.1rem] top-[1.15rem] h-3.5 w-3.5 rounded-full border ${
-                      item.active ? "border-sky-200/60 bg-sky-300/80 shadow-[0_0_18px_rgba(56,189,248,.75)]" : "border-white/25 bg-[#0b0f14]"
-                    }`}
-                  />
+    <div id="docs-nav-list" class="grow overflow-y-auto px-4 pb-16">
+      {
+        groups.map((group, groupIndex) => (
+          <section class="pt-4">
+            <div class="px-1 text-[0.68rem] font-benderBold tracking-[0.35em] text-white/35">
+              {String(groupIndex + 1).padStart(2, "0")} // {group.cluster.toUpperCase()}
+            </div>
 
-                  <div class="flex items-start justify-between gap-4">
-                    <div>
-                      <div class="text-[0.68rem] font-benderBold tracking-[0.3em] text-white/38">{item.pathLabel}</div>
-                      <div class="mt-2 text-[0.98rem] font-benderBold leading-6 tracking-[0.04em]">{item.label}</div>
-                    </div>
-                    <div class="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.64rem] font-benderBold tracking-[0.28em] text-white/45">
-                      {item.code}
-                    </div>
-                  </div>
-                </a>
-              </li>
-            ))
-          }
-        </ul>
-      </section>
-    ))
-  }
+            <ul class="mt-3 space-y-3">
+              {
+                group.items.map((item, itemIndex) => (
+                  <li class="relative">
+                    <div
+                      class="absolute left-[0.95rem] top-[1rem] h-[calc(100%+1rem)] w-px bg-white/10"
+                      style={{ opacity: itemIndex === group.items.length - 1 ? 0 : 1 }}
+                    />
+                    <a
+                      target="_self"
+                      href={item.href}
+                      class={`relative block overflow-hidden rounded-[1rem] border bg-black/35 px-3.5 py-3 text-inherit no-underline transition-all duration-300 panel-grid panel-noise ${
+                        item.active
+                          ? "border-sky-300/45 bg-sky-300/10 text-white glow-blue"
+                          : "border-white/10 text-white/75 hover:border-sky-300/30 hover:text-white"
+                      }`}
+                      style={{ marginLeft: `${(item.depth - 1) * 0.95}rem` }}
+                    >
+                      <div
+                        class={`absolute left-[-0.95rem] top-[1rem] h-3.5 w-3.5 rounded-full border ${
+                          item.active ? "border-sky-200/60 bg-sky-300/80 shadow-[0_0_18px_rgba(56,189,248,.75)]" : "border-white/25 bg-[#0b0f14]"
+                        }`}
+                      />
+
+                      <div class="flex items-start justify-between gap-3">
+                        <div>
+                          <div class="text-[0.62rem] font-benderBold tracking-[0.28em] text-white/38">{item.pathLabel}</div>
+                          <div class="mt-1.5 text-[0.92rem] font-benderBold leading-6 tracking-[0.04em]">{item.label}</div>
+                        </div>
+                        <div class="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[0.58rem] font-benderBold tracking-[0.25em] text-white/45">
+                          {item.code}
+                        </div>
+                      </div>
+                    </a>
+                  </li>
+                ))
+              }
+            </ul>
+          </section>
+        ))
+      }
+    </div>
+  </div>
 </div>

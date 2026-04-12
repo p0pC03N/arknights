@@ -30,7 +30,8 @@ const subNavigationItems = getDocsSubNavigationItems();
     showKnowledgeMap && (
       <nav
         slot="left-aside"
-        class="h-full overflow-hidden rounded-r-[1.5rem] border-r border-sky-300/20 bg-[#071019]/88 mix-blend-screen panel-grid flex flex-col backdrop-blur-md"
+        id="docs-map-shell"
+        class="docs-map-shell relative h-full overflow-hidden rounded-r-[1.4rem] border-r border-sky-300/20 bg-[#071019]/92 mix-blend-screen panel-grid flex flex-col backdrop-blur-md"
       >
         <DocsLeftAside currentSlug={currentSlug} />
         <DocsLeftAsideSwitch client:load />

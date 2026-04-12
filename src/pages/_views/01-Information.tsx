@@ -171,7 +171,7 @@ function SwiperInfo({ swiperIndex }: { swiperIndex: number }) {
                 <div className="text-[.75rem] portrait:text-[.875rem] font-n15eMedium leading-5 tracking-[2px]">{url}</div>
                 <a
                     href={href}
-                    target="_blank"
+                    target="_self"
                     className={"w-[14.375rem] h-[3.75rem] pr-7 pl-4 mt-8 text-black no-underline whitespace-nowrap bg-ark-blue hover:bg-white flex items-center cursor-pointer transition-colors duration-300 portrait:hidden"}
                 >
                     <div>
@@ -230,7 +230,7 @@ function SwiperBody({ setSwiperIndex }: { setSwiperIndex: React.Dispatch<React.S
                 {
                     data.map(({ title, subtitle, href, image }, index) => (
                         <SwiperSlide key={index}>
-                            <a target="_blank" href={href}>
+                            <a target="_self" href={href}>
                                 {image ? <ImageSlide title={title} image={image} /> : <TextSlide title={title} subtitle={subtitle} />}
                             </a>
                         </SwiperSlide>
