@@ -13,27 +13,31 @@ export type SandtableCamp = {
 };
 
 type GridPoint = { x: number; z: number };
-type RiverData = {
-  points: GridPoint[];
-  radius: number;
-  glowRadius: number;
-  particleCount: number;
-  coreColor: number;
-  glowColor: number;
-};
 type HeightField = {
   cols: number;
   rows: number;
   heights: number[][];
-  rivers: RiverData[];
 };
 
 const TERRAIN_WIDTH = 18.5;
 const TERRAIN_DEPTH = 12.5;
-const TERRAIN_HEIGHT = 5.2;
-const HEIGHT_GRID_X = 110;
-const HEIGHT_GRID_Z = 78;
-const ALTITUDE_COLORS = [0x04111a, 0x072033, 0x0a3250, 0x104569, 0x155781, 0x1c6997, 0x267cad, 0x3c9bc6, 0x72c4ea, 0xbef2ff];
+const TERRAIN_HEIGHT = 5.5;
+const HEIGHT_GRID_X = 144;
+const HEIGHT_GRID_Z = 96;
+const ALTITUDE_COLORS = [
+  0x01070d,
+  0x03111d,
+  0x071c2b,
+  0x0a273a,
+  0x10334b,
+  0x15415d,
+  0x1e5270,
+  0x2b6a88,
+  0x3f86a3,
+  0x58a8c4,
+  0x83d3ec,
+  0xc2f8ff,
+];
 const MARCHING_CASES: Record<number, [number, number][]> = {
   1: [[3, 2]],
   2: [[2, 1]],
@@ -65,6 +69,15 @@ function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }
 
+function smoothstep(edge0: number, edge1: number, value: number) {
+  const t = clamp((value - edge0) / (edge1 - edge0), 0, 1);
+  return t * t * (3 - 2 * t);
+}
+
+function gaussian(x: number, z: number, centerX: number, centerZ: number, radiusX: number, radiusZ: number, intensity: number) {
+  return intensity * Math.exp(-(((x - centerX) * (x - centerX)) / (radiusX * radiusX) + ((z - centerZ) * (z - centerZ)) / (radiusZ * radiusZ)));
+}
+
 function ridge(
   x: number,
   z: number,
@@ -81,26 +94,71 @@ function ridge(
   const sin = Math.sin(angle);
   const rx = dx * cos + dz * sin;
   const rz = -dx * sin + dz * cos;
-
   return intensity * Math.exp(-((rx * rx) / (longAxis * longAxis) + (rz * rz) / (shortAxis * shortAxis)));
+}
+
+function terrainNoise(x: number, z: number) {
+  return (
+    Math.sin(x * 8.2) * Math.cos(z * 5.7) * 0.018 +
+    Math.sin((x - z) * 12.4) * 0.014 +
+    Math.cos((x + z) * 9.1) * 0.01
+  );
 }
 
 function normalizedToWorld(nx: number, nz: number, height: number) {
   return new THREE.Vector3(nx * (TERRAIN_WIDTH / 2), height * TERRAIN_HEIGHT, nz * (TERRAIN_DEPTH / 2));
 }
 
+function terraceHeight(height: number) {
+  const stepped = Math.floor(height * 18) / 18;
+  return lerp(height, stepped, 0.74);
+}
+
 function baseHeight(nx: number, nz: number) {
-  let h = 0.06;
-  h += ridge(nx, nz, -0.78, 0.22, -0.96, 0.78, 0.12, 1.02);
-  h += ridge(nx, nz, -0.34, 0.04, -0.68, 0.66, 0.14, 1.14);
-  h += ridge(nx, nz, 0.04, -0.08, -0.48, 0.54, 0.16, 0.98);
-  h += ridge(nx, nz, 0.44, -0.16, -0.28, 0.44, 0.18, 0.72);
-  h += ridge(nx, nz, 0.74, 0.18, 0.18, 0.32, 0.2, 0.42);
-  h += 0.18 * Math.exp(-(((nx + 0.84) * (nx + 0.84)) + ((nz - 0.58) * (nz - 0.58))) / 0.1);
-  h += 0.12 * Math.exp(-(((nx - 0.62) * (nx - 0.62)) + ((nz + 0.54) * (nz + 0.54))) / 0.12);
-  h += 0.05 * Math.sin((nx + 0.12) * 7.2) * Math.cos((nz - 0.18) * 5.6);
-  h -= 0.1 * Math.exp(-(((nx - 0.14) * (nx - 0.14)) + ((nz + 0.48) * (nz + 0.48))) / 0.08);
-  return clamp(h, 0.02, 1.18);
+  const warpedX = nx + Math.sin(nz * 4.2) * 0.045 + Math.sin((nx + nz) * 6.5) * 0.02;
+  const warpedZ = nz + Math.cos(nx * 3.6) * 0.04 + Math.sin((nz - nx) * 5.1) * 0.018;
+
+  const westRange = Math.max(
+    ridge(warpedX, warpedZ, -0.74, -0.34, 0.88, 0.42, 0.08, 0.92),
+    gaussian(warpedX, warpedZ, -0.82, -0.48, 0.12, 0.1, 0.74),
+    gaussian(warpedX, warpedZ, -0.66, -0.22, 0.13, 0.11, 0.7),
+    gaussian(warpedX, warpedZ, -0.54, 0.02, 0.16, 0.12, 0.42),
+  );
+
+  const centralRange = Math.max(
+    ridge(warpedX, warpedZ, -0.16, 0.04, 0.66, 0.4, 0.09, 1.02),
+    gaussian(warpedX, warpedZ, -0.24, -0.08, 0.12, 0.09, 0.84),
+    gaussian(warpedX, warpedZ, -0.08, 0.12, 0.13, 0.11, 0.78),
+    gaussian(warpedX, warpedZ, 0.08, 0.26, 0.16, 0.12, 0.5),
+  );
+
+  const eastRange = Math.max(
+    ridge(warpedX, warpedZ, 0.38, -0.08, 0.36, 0.34, 0.1, 0.96),
+    gaussian(warpedX, warpedZ, 0.28, -0.18, 0.12, 0.09, 0.74),
+    gaussian(warpedX, warpedZ, 0.46, 0.02, 0.12, 0.1, 0.82),
+    gaussian(warpedX, warpedZ, 0.62, 0.16, 0.16, 0.12, 0.46),
+  );
+
+  const farMassif = Math.max(
+    ridge(warpedX, warpedZ, 0.74, 0.26, 0.12, 0.24, 0.09, 0.62),
+    gaussian(warpedX, warpedZ, 0.84, 0.24, 0.09, 0.08, 0.54),
+  );
+
+  const southernHills =
+    gaussian(warpedX, warpedZ, -0.46, 0.54, 0.2, 0.14, 0.18) +
+    gaussian(warpedX, warpedZ, 0.12, 0.62, 0.24, 0.16, 0.12);
+
+  let height = 0.025 + terrainNoise(warpedX, warpedZ);
+  height += Math.max(westRange, centralRange, eastRange, farMassif);
+  height += southernHills;
+  height -= gaussian(warpedX, warpedZ, -0.42, 0.18, 0.16, 0.14, 0.13);
+  height -= gaussian(warpedX, warpedZ, 0.18, 0.22, 0.18, 0.16, 0.1);
+  height -= gaussian(warpedX, warpedZ, 0.58, 0.42, 0.14, 0.12, 0.08);
+
+  const edgeFade = 1 - smoothstep(0.76, 1.06, Math.max(Math.abs(nx), Math.abs(nz)));
+  height *= 0.26 + edgeFade * 0.74;
+
+  return clamp(terraceHeight(height), 0.01, 1.08);
 }
 
 function sampleHeightField(field: HeightField, gx: number, gz: number) {
@@ -112,7 +170,6 @@ function sampleHeightField(field: HeightField, gx: number, gz: number) {
   const z1 = Math.min(field.rows, z0 + 1);
   const tx = x - x0;
   const tz = z - z0;
-
   const top = lerp(field.heights[z0][x0], field.heights[z0][x1], tx);
   const bottom = lerp(field.heights[z1][x0], field.heights[z1][x1], tx);
   return lerp(top, bottom, tz);
@@ -121,155 +178,28 @@ function sampleHeightField(field: HeightField, gx: number, gz: number) {
 function gridToWorld(field: HeightField, point: GridPoint, extraY = 0) {
   const nx = point.x / field.cols * 2 - 1;
   const nz = point.z / field.rows * 2 - 1;
-  const height = sampleHeightField(field, point.x, point.z);
-  const world = normalizedToWorld(nx, nz, height);
+  const world = normalizedToWorld(nx, nz, sampleHeightField(field, point.x, point.z));
   world.y += extraY;
   return world;
 }
 
-function smoothPath(points: GridPoint[], iterations: number) {
-  let output = points.slice();
-
-  for (let i = 0; i < iterations; i += 1) {
-    output = output.map((point, index) => {
-      if (index === 0 || index === output.length - 1) return point;
-      const prev = output[index - 1];
-      const next = output[index + 1];
-      return {
-        x: (prev.x + point.x * 2 + next.x) / 4,
-        z: (prev.z + point.z * 2 + next.z) / 4,
-      };
-    });
-  }
-
-  return output;
-}
-
-function traceRiver(heights: number[][], start: GridPoint, goal: GridPoint, maxSteps: number) {
-  const rows = heights.length - 1;
-  const cols = heights[0].length - 1;
-  const visited = new Set<string>();
-  const path: GridPoint[] = [{ ...start }];
-  let current = { ...start };
-
-  const directions = [
-    { x: 1, z: 0 },
-    { x: 1, z: 1 },
-    { x: 0, z: 1 },
-    { x: -1, z: 1 },
-    { x: 1, z: -1 },
-    { x: -1, z: 0 },
-    { x: 0, z: -1 },
-    { x: -1, z: -1 },
-  ];
-
-  for (let step = 0; step < maxSteps; step += 1) {
-    const distanceToGoal = Math.hypot(goal.x - current.x, goal.z - current.z);
-    if (distanceToGoal < 2.4) {
-      path.push({ ...goal });
-      break;
-    }
-
-    visited.add(`${Math.round(current.x)}:${Math.round(current.z)}`);
-
-    const currentHeight = sampleHeightField(
-      { cols, rows, heights, rivers: [] },
-      current.x,
-      current.z,
-    );
-
-    let bestCandidate: GridPoint | null = null;
-    let bestScore = Number.POSITIVE_INFINITY;
-
-    directions.forEach((direction) => {
-      const candidate = { x: current.x + direction.x, z: current.z + direction.z };
-      if (candidate.x < 1 || candidate.x > cols - 1 || candidate.z < 1 || candidate.z > rows - 1) return;
-
-      const key = `${Math.round(candidate.x)}:${Math.round(candidate.z)}`;
-      const candidateHeight = sampleHeightField({ cols, rows, heights, rivers: [] }, candidate.x, candidate.z);
-      const downhillPenalty = Math.max(0, candidateHeight - currentHeight) * 12;
-      const revisitPenalty = visited.has(key) ? 4 : 0;
-      const goalDistance = Math.hypot(goal.x - candidate.x, goal.z - candidate.z);
-      const alignmentPenalty = direction.x < 0 ? 0.9 : 0;
-      const score = candidateHeight * 5.2 + goalDistance * 0.05 + downhillPenalty + revisitPenalty + alignmentPenalty;
-
-      if (score < bestScore) {
-        bestScore = score;
-        bestCandidate = candidate;
-      }
-    });
-
-    if (!bestCandidate) break;
-    current = bestCandidate;
-    path.push({ ...current });
-  }
-
-  return smoothPath(path, 3);
-}
-
-function carveRiver(heights: number[][], path: GridPoint[], depth: number, radius: number) {
-  const rows = heights.length - 1;
-  const cols = heights[0].length - 1;
-
-  path.forEach((point) => {
-    const minX = Math.max(0, Math.floor(point.x - radius * 1.8));
-    const maxX = Math.min(cols, Math.ceil(point.x + radius * 1.8));
-    const minZ = Math.max(0, Math.floor(point.z - radius * 1.8));
-    const maxZ = Math.min(rows, Math.ceil(point.z + radius * 1.8));
-
-    for (let z = minZ; z <= maxZ; z += 1) {
-      for (let x = minX; x <= maxX; x += 1) {
-        const distance = Math.hypot(x - point.x, z - point.z);
-        const influence = Math.exp(-(distance * distance) / (radius * radius));
-        heights[z][x] = Math.max(0.015, heights[z][x] - depth * influence);
-      }
-    }
-  });
-}
-
 function createHeightField(cols: number, rows: number): HeightField {
-  const heights = Array.from({ length: rows + 1 }, (_, row) =>
-    Array.from({ length: cols + 1 }, (_, col) => {
-      const nx = col / cols * 2 - 1;
-      const nz = row / rows * 2 - 1;
-      return baseHeight(nx, nz);
-    }),
-  );
-
-  const mainRiverPath = traceRiver(heights, { x: 12, z: 10 }, { x: cols - 8, z: rows - 10 }, 180);
-  const branchGoal = mainRiverPath[Math.floor(mainRiverPath.length * 0.58)] ?? { x: cols * 0.58, z: rows * 0.52 };
-  const tributaryPath = traceRiver(heights, { x: 44, z: 12 }, branchGoal, 96);
-
-  carveRiver(heights, mainRiverPath, 0.18, 2.9);
-  carveRiver(heights, tributaryPath, 0.12, 2.2);
-
   return {
     cols,
     rows,
-    heights,
-    rivers: [
-      {
-        points: mainRiverPath,
-        radius: 0.075,
-        glowRadius: 0.22,
-        particleCount: 42,
-        coreColor: 0x86f6ff,
-        glowColor: 0x1fb8ff,
-      },
-      {
-        points: tributaryPath,
-        radius: 0.05,
-        glowRadius: 0.14,
-        particleCount: 24,
-        coreColor: 0x66dbff,
-        glowColor: 0x1d95ff,
-      },
-    ],
+    heights: Array.from({ length: rows + 1 }, (_, row) =>
+      Array.from({ length: cols + 1 }, (_, col) => {
+        const nx = col / cols * 2 - 1;
+        const nz = row / rows * 2 - 1;
+        return baseHeight(nx, nz);
+      }),
+    ),
   };
 }
 
 function altitudeColor(height: number) {
-  const bandIndex = clamp(Math.floor(height * ALTITUDE_COLORS.length), 0, ALTITUDE_COLORS.length - 1);
+  const shaped = Math.pow(clamp(height / 1.08, 0, 1), 0.92);
+  const bandIndex = clamp(Math.floor(shaped * ALTITUDE_COLORS.length), 0, ALTITUDE_COLORS.length - 1);
   return new THREE.Color(ALTITUDE_COLORS[bandIndex]);
 }
 
@@ -281,7 +211,7 @@ function buildTerrainMesh(field: HeightField) {
   const colors = new Float32Array(position.count * 3);
 
   for (let index = 0; index < position.count; index += 3) {
-    let triangleHeight = 0;
+    const triangleHeights: number[] = [];
 
     for (let offset = 0; offset < 3; offset += 1) {
       const vertexIndex = index + offset;
@@ -291,10 +221,11 @@ function buildTerrainMesh(field: HeightField) {
       const gz = (nz + 1) * 0.5 * field.rows;
       const height = sampleHeightField(field, gx, gz);
       position.setY(vertexIndex, height * TERRAIN_HEIGHT);
-      triangleHeight += height;
+      triangleHeights.push(height);
     }
 
-    const color = altitudeColor(triangleHeight / 3);
+    const meanHeight = triangleHeights.reduce((sum, value) => sum + value, 0) / triangleHeights.length;
+    const color = altitudeColor(meanHeight);
     for (let offset = 0; offset < 3; offset += 1) {
       const colorIndex = (index + offset) * 3;
       colors[colorIndex] = color.r;
@@ -306,37 +237,23 @@ function buildTerrainMesh(field: HeightField) {
   geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
   geometry.computeVertexNormals();
 
-  const terrain = new THREE.Mesh(
+  return new THREE.Mesh(
     geometry,
     new THREE.MeshStandardMaterial({
       vertexColors: true,
       flatShading: true,
-      roughness: 0.28,
-      metalness: 0.08,
-      emissive: new THREE.Color(0x082233),
-      emissiveIntensity: 0.28,
+      roughness: 0.34,
+      metalness: 0.06,
+      emissive: new THREE.Color(0x071724),
+      emissiveIntensity: 0.26,
     }),
   );
-
-  const wire = new THREE.LineSegments(
-    new THREE.WireframeGeometry(geometry.clone()),
-    new THREE.LineBasicMaterial({
-      color: 0x8be7ff,
-      transparent: true,
-      opacity: 0.045,
-    }),
-  );
-  wire.position.y += 0.03;
-
-  return { terrain, wire };
 }
 
 function contourEdgePoint(
   edge: number,
   x0: number,
   z0: number,
-  stepX: number,
-  stepZ: number,
   tl: number,
   tr: number,
   br: number,
@@ -346,28 +263,26 @@ function contourEdgePoint(
   switch (edge) {
     case 0: {
       const t = (threshold - tl) / ((tr - tl) || 1e-6);
-      return { x: x0 + stepX * t, z: z0 };
+      return { x: x0 + t, z: z0 };
     }
     case 1: {
       const t = (threshold - tr) / ((br - tr) || 1e-6);
-      return { x: x0 + stepX, z: z0 + stepZ * t };
+      return { x: x0 + 1, z: z0 + t };
     }
     case 2: {
       const t = (threshold - bl) / ((br - bl) || 1e-6);
-      return { x: x0 + stepX * t, z: z0 + stepZ };
+      return { x: x0 + t, z: z0 + 1 };
     }
     default: {
       const t = (threshold - tl) / ((bl - tl) || 1e-6);
-      return { x: x0, z: z0 + stepZ * t };
+      return { x: x0, z: z0 + t };
     }
   }
 }
 
 function buildContourGroup(field: HeightField) {
   const group = new THREE.Group();
-  const thresholds = Array.from({ length: 11 }, (_, index) => 0.1 + index * 0.08);
-  const stepX = field.cols / field.cols;
-  const stepZ = field.rows / field.rows;
+  const thresholds = Array.from({ length: 22 }, (_, index) => 0.05 + index * 0.043);
 
   thresholds.forEach((threshold, thresholdIndex) => {
     const positions: number[] = [];
@@ -383,11 +298,10 @@ function buildContourGroup(field: HeightField) {
         if (!segments) continue;
 
         segments.forEach(([edgeA, edgeB]) => {
-          const pointA = contourEdgePoint(edgeA, col, row, stepX, stepZ, tl, tr, br, bl, threshold);
-          const pointB = contourEdgePoint(edgeB, col, row, stepX, stepZ, tl, tr, br, bl, threshold);
-          const worldA = gridToWorld(field, pointA, 0.03 + thresholdIndex * 0.008);
-          const worldB = gridToWorld(field, pointB, 0.03 + thresholdIndex * 0.008);
-
+          const pointA = contourEdgePoint(edgeA, col, row, tl, tr, br, bl, threshold);
+          const pointB = contourEdgePoint(edgeB, col, row, tl, tr, br, bl, threshold);
+          const worldA = gridToWorld(field, pointA, 0.05 + thresholdIndex * 0.003);
+          const worldB = gridToWorld(field, pointB, 0.05 + thresholdIndex * 0.003);
           positions.push(worldA.x, worldA.y, worldA.z, worldB.x, worldB.y, worldB.z);
         });
       }
@@ -397,14 +311,15 @@ function buildContourGroup(field: HeightField) {
 
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    const majorLine = thresholdIndex % 4 === 0;
 
     group.add(
       new THREE.LineSegments(
         geometry,
         new THREE.LineBasicMaterial({
-          color: new THREE.Color().setHSL(0.55, 0.92, 0.5 + thresholdIndex * 0.02),
+          color: majorLine ? 0x9af7ff : 0x51dfff,
           transparent: true,
-          opacity: 0.12 + thresholdIndex * 0.012,
+          opacity: majorLine ? 0.55 : 0.28,
           blending: THREE.AdditiveBlending,
         }),
       ),
@@ -414,54 +329,20 @@ function buildContourGroup(field: HeightField) {
   return group;
 }
 
-function buildRiverGroup(field: HeightField) {
-  const group = new THREE.Group();
-  const flows: { curve: THREE.CatmullRomCurve3; particles: THREE.Points; positions: Float32Array; speed: number }[] = [];
+function buildFoothillGlow() {
+  const geometry = new THREE.PlaneGeometry(TERRAIN_WIDTH + 0.4, TERRAIN_DEPTH + 0.4, 1, 1);
+  geometry.rotateX(-Math.PI / 2);
 
-  field.rivers.forEach((river, riverIndex) => {
-    const points = river.points.map((point) => gridToWorld(field, point, 0.06));
-    const curve = new THREE.CatmullRomCurve3(points);
-
-    const glow = new THREE.Mesh(
-      new THREE.TubeGeometry(curve, 220, river.glowRadius, 10, false),
-      new THREE.MeshBasicMaterial({
-        color: river.glowColor,
-        transparent: true,
-        opacity: 0.2,
-        blending: THREE.AdditiveBlending,
-      }),
-    );
-
-    const core = new THREE.Mesh(
-      new THREE.TubeGeometry(curve, 220, river.radius, 10, false),
-      new THREE.MeshBasicMaterial({
-        color: river.coreColor,
-        transparent: true,
-        opacity: 0.9,
-      }),
-    );
-
-    const particleGeometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(river.particleCount * 3);
-    particleGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-
-    const particles = new THREE.Points(
-      particleGeometry,
-      new THREE.PointsMaterial({
-        color: river.coreColor,
-        size: riverIndex === 0 ? 0.14 : 0.11,
-        transparent: true,
-        opacity: 0.82,
-        blending: THREE.AdditiveBlending,
-        sizeAttenuation: true,
-      }),
-    );
-
-    group.add(glow, core, particles);
-    flows.push({ curve, particles, positions, speed: riverIndex === 0 ? 0.028 : 0.038 });
-  });
-
-  return { group, flows };
+  return new THREE.Mesh(
+    geometry,
+    new THREE.MeshBasicMaterial({
+      color: 0x0f3550,
+      transparent: true,
+      opacity: 0.3,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    }),
+  );
 }
 
 function buildBeacon(field: HeightField, camp: SandtableCamp) {
@@ -475,7 +356,7 @@ function buildBeacon(field: HeightField, camp: SandtableCamp) {
 
   const beam = new THREE.Mesh(
     new THREE.CylinderGeometry(0.018, 0.018, 1.4, 8),
-    new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.56 }),
+    new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.6 }),
   );
   beam.position.y = 0.72;
   group.add(beam);
@@ -489,7 +370,7 @@ function buildBeacon(field: HeightField, camp: SandtableCamp) {
 
   const halo = new THREE.Mesh(
     new THREE.RingGeometry(0.16, 0.28, 48),
-    new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.5, side: THREE.DoubleSide }),
+    new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.54, side: THREE.DoubleSide }),
   );
   halo.rotation.x = -Math.PI / 2;
   halo.position.y = 0.08;
@@ -503,29 +384,29 @@ function buildBasePlate() {
   const group = new THREE.Group();
 
   const plate = new THREE.Mesh(
-    new THREE.BoxGeometry(TERRAIN_WIDTH + 1.4, 0.14, TERRAIN_DEPTH + 1.2),
+    new THREE.BoxGeometry(TERRAIN_WIDTH + 1.6, 0.18, TERRAIN_DEPTH + 1.5),
     new THREE.MeshStandardMaterial({
-      color: 0x041019,
-      emissive: new THREE.Color(0x061d29),
-      emissiveIntensity: 0.35,
-      roughness: 0.42,
+      color: 0x020811,
+      emissive: new THREE.Color(0x061523),
+      emissiveIntensity: 0.36,
+      roughness: 0.44,
       metalness: 0.08,
       transparent: true,
-      opacity: 0.82,
+      opacity: 0.9,
     }),
   );
-  plate.position.y = -0.34;
+  plate.position.y = -0.42;
   group.add(plate);
 
   const outline = new THREE.LineSegments(
-    new THREE.EdgesGeometry(new THREE.BoxGeometry(TERRAIN_WIDTH + 1.4, 0.14, TERRAIN_DEPTH + 1.2)),
+    new THREE.EdgesGeometry(new THREE.BoxGeometry(TERRAIN_WIDTH + 1.6, 0.18, TERRAIN_DEPTH + 1.5)),
     new THREE.LineBasicMaterial({
       color: 0x64dfff,
       transparent: true,
       opacity: 0.22,
     }),
   );
-  outline.position.y = -0.34;
+  outline.position.y = -0.42;
   group.add(outline);
 
   return group;
@@ -555,7 +436,7 @@ export default function SandtableMap({
 
     const field = createHeightField(HEIGHT_GRID_X, HEIGHT_GRID_Z);
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x02070c, 0.04);
+    scene.fog = new THREE.FogExp2(0x01050a, 0.032);
 
     const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
@@ -567,18 +448,19 @@ export default function SandtableMap({
     const root = new THREE.Group();
     scene.add(root);
 
-    const ambient = new THREE.HemisphereLight(0xb8f6ff, 0x02070c, 1.1);
-    const sun = new THREE.DirectionalLight(0x8ee8ff, 1.3);
-    sun.position.set(6, 9, 5);
-    const rim = new THREE.PointLight(0x52dfff, 2.2, 26, 2);
-    rim.position.set(-5, 4, 4);
-    scene.add(ambient, sun, rim);
+    const ambient = new THREE.HemisphereLight(0xc8fbff, 0x01050a, 1.05);
+    const keyLight = new THREE.DirectionalLight(0x8de7ff, 1.36);
+    keyLight.position.set(4.8, 9.8, 6.2);
+    const fill = new THREE.PointLight(0x38bdf8, 2.2, 26, 2);
+    fill.position.set(-5, 4.5, 3.4);
+    scene.add(ambient, keyLight, fill);
 
-    const plate = buildBasePlate();
-    const { terrain, wire } = buildTerrainMesh(field);
+    const basePlate = buildBasePlate();
+    const foothillGlow = buildFoothillGlow();
+    foothillGlow.position.y = -0.02;
+    const terrain = buildTerrainMesh(field);
     const contours = buildContourGroup(field);
-    const { group: riverGroup, flows } = buildRiverGroup(field);
-    root.add(plate, terrain, wire, contours, riverGroup);
+    root.add(basePlate, foothillGlow, terrain, contours);
 
     const beacons = camps.map((camp) => buildBeacon(field, camp));
     beacons.forEach((beacon) => root.add(beacon.group));
@@ -587,13 +469,14 @@ export default function SandtableMap({
       active: false,
       lastX: 0,
       lastY: 0,
-      azimuth: 0.02,
-      polar: 0.86,
-      targetAzimuth: 0.02,
-      targetPolar: 0.86,
+      azimuth: -0.08,
+      polar: 0.94,
+      targetAzimuth: -0.08,
+      targetPolar: 0.94,
     };
 
     const handlePointerDown = (event: PointerEvent) => {
+      if ((event.target as HTMLElement | null)?.closest("a")) return;
       controls.active = true;
       controls.lastX = event.clientX;
       controls.lastY = event.clientY;
@@ -607,8 +490,8 @@ export default function SandtableMap({
       const dy = event.clientY - controls.lastY;
       controls.lastX = event.clientX;
       controls.lastY = event.clientY;
-      controls.targetAzimuth = clamp(controls.targetAzimuth - dx * 0.0056, -0.5, 0.5);
-      controls.targetPolar = clamp(controls.targetPolar + dy * 0.0046, 0.72, 1.08);
+      controls.targetAzimuth = clamp(controls.targetAzimuth - dx * 0.0042, -0.42, 0.38);
+      controls.targetPolar = clamp(controls.targetPolar + dy * 0.0036, 0.82, 1.02);
     };
 
     const handlePointerUp = (event: PointerEvent) => {
@@ -637,7 +520,7 @@ export default function SandtableMap({
     resizeObserver.observe(element);
     resize();
 
-    const focusPoint = new THREE.Vector3(0, 1.5, 0.3);
+    const focusPoint = new THREE.Vector3(0.35, 1.05, 0.22);
     let frame = 0;
 
     const updateMarkerPositions = () => {
@@ -645,7 +528,7 @@ export default function SandtableMap({
         const marker = markerRefs.current[camps[index].id];
         if (!marker) return;
 
-        const projected = beacon.anchor.clone().add(new THREE.Vector3(0, 1.45, 0)).project(camera);
+        const projected = beacon.anchor.clone().add(new THREE.Vector3(0, 1.48, 0)).project(camera);
         const visible = projected.z > -1 && projected.z < 1;
         marker.style.left = `${(projected.x * 0.5 + 0.5) * 100}%`;
         marker.style.top = `${(-projected.y * 0.5 + 0.5) * 100}%`;
@@ -660,40 +543,29 @@ export default function SandtableMap({
       controls.azimuth += (controls.targetAzimuth - controls.azimuth) * 0.08;
       controls.polar += (controls.targetPolar - controls.polar) * 0.08;
 
-      const radius = 23;
+      const radius = 22.8;
       camera.position.set(
         Math.sin(controls.azimuth) * Math.sin(controls.polar) * radius,
-        Math.cos(controls.polar) * radius + 7.6,
+        Math.cos(controls.polar) * radius + 7.4,
         Math.cos(controls.azimuth) * Math.sin(controls.polar) * radius,
       );
       camera.lookAt(focusPoint);
 
-      sun.position.x = 6 + Math.sin(time * 0.24) * 1.2;
-      rim.position.z = 4 + Math.cos(time * 0.31) * 1.1;
-
-      flows.forEach((flow, flowIndex) => {
-        for (let index = 0; index < flow.positions.length / 3; index += 1) {
-          const sample = (time * flow.speed + index / (flow.positions.length / 3) + flowIndex * 0.18) % 1;
-          const point = flow.curve.getPointAt(sample);
-          flow.positions[index * 3] = point.x;
-          flow.positions[index * 3 + 1] = point.y + 0.03;
-          flow.positions[index * 3 + 2] = point.z;
-        }
-        flow.particles.geometry.attributes.position.needsUpdate = true;
-      });
+      keyLight.position.x = 4.8 + Math.sin(time * 0.18) * 0.8;
+      fill.position.z = 3.4 + Math.cos(time * 0.24) * 0.7;
 
       beacons.forEach((beacon, index) => {
         const selected = activeIdRef.current === camps[index].id;
-        const pulse = 0.86 + Math.sin(time * 3 + index * 0.8) * 0.15;
+        const pulse = 0.88 + Math.sin(time * 2.7 + index * 0.7) * 0.14;
         const beamMaterial = beacon.beam.material as THREE.MeshBasicMaterial;
         const orbMaterial = beacon.orb.material as THREE.MeshBasicMaterial;
         const haloMaterial = beacon.halo.material as THREE.MeshBasicMaterial;
 
-        beamMaterial.opacity = selected ? 0.88 : 0.46;
-        orbMaterial.opacity = selected ? 1 : 0.76;
-        haloMaterial.opacity = selected ? 0.8 : 0.38;
+        beamMaterial.opacity = selected ? 0.92 : 0.48;
+        orbMaterial.opacity = selected ? 1 : 0.78;
+        haloMaterial.opacity = selected ? 0.82 : 0.42;
         beacon.orb.scale.setScalar(selected ? pulse * 1.06 : pulse * 0.9);
-        beacon.halo.scale.setScalar(selected ? 1.12 + pulse * 0.08 : 1);
+        beacon.halo.scale.setScalar(selected ? 1.14 + pulse * 0.08 : 1);
       });
 
       updateMarkerPositions();
@@ -711,7 +583,7 @@ export default function SandtableMap({
       element.removeEventListener("pointercancel", handlePointerUp);
       renderer.dispose();
       scene.traverse((object: THREE.Object3D) => {
-        if (object instanceof THREE.Mesh || object instanceof THREE.LineSegments || object instanceof THREE.Points) {
+        if (object instanceof THREE.Mesh || object instanceof THREE.LineSegments) {
           object.geometry.dispose();
           if (Array.isArray(object.material)) {
             object.material.forEach((material: THREE.Material) => material.dispose());
@@ -725,11 +597,11 @@ export default function SandtableMap({
   }, [camps]);
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-[2.8rem] border border-cyan-100/10 bg-[#02060a]/88 shadow-[0_30px_120px_rgba(0,0,0,.46)]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,rgba(34,211,238,.1),transparent_18%),radial-gradient(circle_at_78%_22%,rgba(125,211,252,.1),transparent_18%),linear-gradient(180deg,rgba(255,255,255,.02),rgba(2,6,23,.22)_30%,rgba(2,6,23,.82))]" />
-      <div className="absolute inset-0 panel-grid opacity-[0.08]" />
-      <div className="absolute inset-[1.2rem] rounded-[2.1rem] border border-cyan-100/10 portrait:inset-[.85rem]" />
-      <div className="absolute inset-[2.2rem] rounded-[1.75rem] border border-white/6 portrait:inset-[1.5rem]" />
+    <div className="relative h-full w-full overflow-hidden rounded-[2.8rem] border border-cyan-100/10 bg-[#01050a]/92 shadow-[0_30px_120px_rgba(0,0,0,.46)]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,rgba(56,189,248,.08),transparent_18%),radial-gradient(circle_at_78%_22%,rgba(186,230,253,.08),transparent_18%),linear-gradient(180deg,rgba(255,255,255,.02),rgba(2,6,23,.18)_30%,rgba(2,6,23,.84))]" />
+      <div className="absolute inset-0 panel-grid opacity-[0.07]" />
+      <div className="absolute inset-[1.1rem] rounded-[2.15rem] border border-cyan-100/10 portrait:inset-[.85rem]" />
+      <div className="absolute inset-[2rem] rounded-[1.8rem] border border-white/6 portrait:inset-[1.4rem]" />
       <div ref={containerRef} className="absolute inset-0 touch-none" />
 
       <div className="pointer-events-none absolute inset-0 z-[2]">
@@ -749,7 +621,7 @@ export default function SandtableMap({
               style={{ left: "50%", top: "50%" }}
             >
               <span
-                className={`relative z-[2] flex items-center gap-2 rounded-full border border-cyan-100/15 bg-black/60 px-3 py-1.5 text-[0.72rem] font-benderBold tracking-[0.28em] backdrop-blur-md transition-all duration-300 ${camp.glowClass} ${
+                className={`relative z-[2] flex items-center gap-2 rounded-full border border-cyan-100/15 bg-black/68 px-3 py-1.5 text-[0.72rem] font-benderBold tracking-[0.28em] backdrop-blur-md transition-all duration-300 ${camp.glowClass} ${
                   selected ? "scale-100" : "scale-[.96] opacity-92"
                 }`}
               >

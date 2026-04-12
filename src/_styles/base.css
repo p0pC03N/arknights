@@ -337,6 +337,27 @@
     overflow-wrap: anywhere;
 }
 
+.sealed-article-body-panel {
+    width: 100%;
+    max-width: none;
+}
+
+.sealed-article-underlay {
+    color: rgba(226, 232, 240, .16);
+    filter: saturate(.94) brightness(.96);
+}
+
+.sealed-article-underlay h1,
+.sealed-article-underlay h2,
+.sealed-article-underlay h3,
+.sealed-article-underlay h4,
+.sealed-article-underlay h5,
+.sealed-article-underlay h6,
+.sealed-article-underlay strong,
+.sealed-article-underlay code {
+    color: rgba(226, 232, 240, .22);
+}
+
 .sealed-article-body h1,
 .sealed-article-body h2,
 .sealed-article-body h3,
@@ -380,6 +401,7 @@
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     letter-spacing: .04em;
     color: rgba(184, 247, 255, .82);
+    text-shadow: 0 0 10px rgba(125, 211, 252, .16);
 }
 
 .sealed-article-scramble-line {

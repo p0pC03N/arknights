@@ -15,7 +15,7 @@ const camps: SandtableCamp[] = [
     accent: "#facc15",
     textClass: "text-yellow-100",
     glowClass: "glow-amber",
-    position: { x: 18, y: 76 },
+    position: { x: 18, y: 72 },
   },
   {
     id: "docs",
@@ -25,7 +25,7 @@ const camps: SandtableCamp[] = [
     accent: "#38bdf8",
     textClass: "text-sky-100",
     glowClass: "glow-blue",
-    position: { x: 44, y: 28 },
+    position: { x: 48, y: 30 },
   },
   {
     id: "secret",
@@ -35,7 +35,7 @@ const camps: SandtableCamp[] = [
     accent: "#e2e8f0",
     textClass: "text-slate-100",
     glowClass: "glow-neutral",
-    position: { x: 74, y: 46 },
+    position: { x: 78, y: 52 },
   },
 ];
 

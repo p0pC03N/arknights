@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 
 export type EncryptedPayload = {
   v: 1;
@@ -71,7 +71,7 @@ function scrambleLine(line: string, revealRatio: number, salt: number) {
   return Array.from(line)
     .map((char, index) => {
       if (char === " ") return " ";
-      if (revealRatio >= 1 || index / Math.max(1, line.length - 1) < revealRatio) return char;
+      if (revealRatio >= 1 || index / Math.max(1, line.length - 1) < revealRatio) return "\u00A0";
       return glyphs[(index * 17 + salt * 13) % glyphs.length];
     })
     .join("");
@@ -137,6 +137,7 @@ function ArticleViewport({
   revealing,
   displayLines,
   presentation,
+  scrollRef,
 }: {
   title: string;
   statusLine: string;
@@ -144,6 +145,7 @@ function ArticleViewport({
   revealing: boolean;
   displayLines: string[];
   presentation: Presentation;
+  scrollRef: MutableRefObject<HTMLDivElement | null>;
 }) {
   return (
     <div className={`relative ${presentation === "panel" ? "flex h-full flex-col" : ""}`}>
@@ -158,18 +160,31 @@ function ArticleViewport({
         </div>
       </div>
 
-      <div className={`min-h-0 ${presentation === "panel" ? "flex-1 overflow-y-auto px-6 py-6" : "px-6 py-6"}`}>
-        {revealing ? (
-          <div className="sealed-article-body sealed-article-scramble">
-            {displayLines.map((line, index) => (
-              <div key={`${index}-${line.slice(0, 10)}`} className="sealed-article-scramble-line" style={{ animationDelay: `${index * 18}ms` }}>
-                {line || "\u00A0"}
+      <div
+        ref={scrollRef}
+        data-root-scroll-lock="true"
+        className={`min-h-0 overscroll-contain ${presentation === "panel" ? "flex-1 overflow-y-auto px-6 py-6" : "px-6 py-6"}`}
+      >
+        <div className="relative">
+          <article
+            className={`sealed-article-body ${presentation === "panel" ? "sealed-article-body-panel" : ""} ${
+              revealing ? "sealed-article-underlay" : "animate-[article-fade-in_.55s_ease]"
+            }`}
+            dangerouslySetInnerHTML={{ __html: html ?? "" }}
+          />
+
+          {revealing ? (
+            <div className="pointer-events-none absolute inset-0">
+              <div className={`sealed-article-body ${presentation === "panel" ? "sealed-article-body-panel" : ""} sealed-article-scramble`}>
+                {displayLines.map((line, index) => (
+                  <div key={`${index}-${line.slice(0, 10)}`} className="sealed-article-scramble-line" style={{ animationDelay: `${index * 18}ms` }}>
+                    {line || "\u00A0"}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        ) : (
-          <article className="sealed-article-body animate-[article-fade-in_.55s_ease]" dangerouslySetInnerHTML={{ __html: html ?? "" }} />
-        )}
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );
@@ -271,6 +286,7 @@ export default function EncryptedArticle(props: {
   const [warningSeed, setWarningSeed] = useState(0);
   const [sourceLines, setSourceLines] = useState<string[]>([]);
   const [displayLines, setDisplayLines] = useState<string[]>([]);
+  const articleScrollRef = useRef<HTMLDivElement | null>(null);
 
   const glitchBlocks = useMemo(() => createGlitchBlocks(warningSeed), [warningSeed]);
   const shellClass = presentation === "panel" ? "h-full" : "mx-auto max-w-[82rem] pb-12";
@@ -289,12 +305,15 @@ export default function EncryptedArticle(props: {
     let startTimer: number | undefined;
     let settleTimer: number | undefined;
     let intervalTimer: number | undefined;
-    const ticksPerLine = 5;
+    const ticksPerLine = 6;
     const totalTicks = sourceLines.length * ticksPerLine + 14;
+
+    articleScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
 
     startTimer = window.setTimeout(() => {
       intervalTimer = window.setInterval(() => {
         tick += 1;
+        const decodeProgress = Math.min(1, tick / totalTicks);
 
         setDisplayLines(
           sourceLines.map((line, index) => {
@@ -304,15 +323,22 @@ export default function EncryptedArticle(props: {
           }),
         );
 
+        window.requestAnimationFrame(() => {
+          const viewport = articleScrollRef.current;
+          if (!viewport) return;
+          const maxScroll = Math.max(0, viewport.scrollHeight - viewport.clientHeight);
+          viewport.scrollTop = maxScroll * Math.min(0.3, decodeProgress * 0.3);
+        });
+
         if (tick >= totalTicks) {
           if (intervalTimer) window.clearInterval(intervalTimer);
           settleTimer = window.setTimeout(() => {
             setStage("unlocked");
             setStatusLine("VERIFIED");
-          }, 320);
+          }, 120);
         }
-      }, 64);
-    }, 360);
+      }, 72);
+    }, 420);
 
     return () => {
       if (startTimer) window.clearTimeout(startTimer);
@@ -327,6 +353,7 @@ export default function EncryptedArticle(props: {
     setStatusLine("WAITING");
     setProgress(0);
     setDisplayLines([]);
+    articleScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
   }
 
   async function onDecrypt() {
@@ -388,6 +415,7 @@ export default function EncryptedArticle(props: {
               revealing={stage === "revealing"}
               displayLines={displayLines}
               presentation={presentation}
+              scrollRef={articleScrollRef}
             />
           ) : (
             <ValidationViewport

@@ -9,6 +9,37 @@ import World from "./03-World.tsx";
 import Media from "./04-Media.tsx";
 import More from "./05-More.tsx";
 
+function getScrollableAncestor(target: EventTarget | null, rootElement: HTMLElement | null) {
+    if (!(target instanceof HTMLElement) || !rootElement) return null;
+
+    let current: HTMLElement | null = target;
+    while (current && current !== rootElement) {
+        const style = getComputedStyle(current);
+        const canScroll = /(auto|scroll|overlay)/.test(style.overflowY) && current.scrollHeight > current.clientHeight + 1;
+        const locked = current.dataset.rootScrollLock === "true";
+
+        if (locked || canScroll) {
+            return current;
+        }
+
+        current = current.parentElement;
+    }
+
+    return null;
+}
+
+function canConsumeScroll(element: HTMLElement, deltaY: number) {
+    if (deltaY > 0) {
+        return element.scrollTop + element.clientHeight < element.scrollHeight - 1;
+    }
+
+    if (deltaY < 0) {
+        return element.scrollTop > 1;
+    }
+
+    return false;
+}
+
 export default function RootPageViews() {
     const [isLoading, setIsLoading] = useState(true);
 
@@ -45,12 +76,20 @@ export default function RootPageViews() {
     }, [])
 
     const startTouchY = useRef(0)
+    const touchScrollableRef = useRef<HTMLElement | null>(null)
 
     const handleTouchStart = useCallback((event: TouchEvent) => {
         startTouchY.current = event.touches[0].clientY
+        const rootElement = document.getElementById("root-page-views")
+        touchScrollableRef.current = getScrollableAncestor(event.target, rootElement)
     }, [])
 
     const handleTouchEnd = useCallback((event: TouchEvent) => {
+        if (touchScrollableRef.current) {
+            touchScrollableRef.current = null
+            return
+        }
+
         const diffY = startTouchY.current - event.changedTouches[0].clientY
         if (Math.abs(diffY) > 160) {
             diffY > 0 ? viewIndexSetNext() : viewIndexSetPrev()
@@ -73,6 +112,13 @@ export default function RootPageViews() {
 
     useEffect(() => {
         const handleScroll = (event: WheelEvent) => {
+            const rootElement = document.getElementById("root-page-views")
+            const scrollable = getScrollableAncestor(event.target, rootElement)
+
+            if (scrollable && canConsumeScroll(scrollable, event.deltaY)) {
+                return
+            }
+
             if (performance.now() - lastScrollTime.current > 1000) {
                 let newIndex: number
                 if (event.deltaY < 0)
@@ -87,7 +133,7 @@ export default function RootPageViews() {
         }
 
         const rootElement = document.getElementById("root-page-views")
-        rootElement!.addEventListener("wheel", handleScroll)
+        rootElement!.addEventListener("wheel", handleScroll, { passive: true })
         return () => rootElement!.removeEventListener("wheel", handleScroll);
     }, [localViewIndex])
 
