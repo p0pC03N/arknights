@@ -174,6 +174,11 @@ export function Init() {
         setIsObserving(false);
     }, []);
 
+    const markInitialized = useCallback(() => {
+        isInitialized.set(true);
+        stopObserving();
+    }, [stopObserving]);
+
     useEffect(() => {
         if (!isObserving) return;
 
@@ -190,11 +195,6 @@ export function Init() {
                     return next;
                 });
                 incrementProgress();
-
-                if (resourceName.endsWith("/images/index-bg.jpg")) {
-                    isInitialized.set(true);
-                    stopObserving();
-                }
             });
         });
 
@@ -211,17 +211,37 @@ export function Init() {
                 return next;
             });
             incrementProgress();
-
-            if (entry.name.endsWith("/images/index-bg.jpg")) {
-                isInitialized.set(true);
-                stopObserving();
-            }
         });
 
         return () => {
             observer.disconnect();
         };
     }, [incrementProgress, isObserving, loadedResources, stopObserving]);
+
+    useEffect(() => {
+        if ($isInitialized) return;
+
+        const completeInit = () => {
+            window.setTimeout(() => {
+                markInitialized();
+            }, 120);
+        };
+
+        if (document.readyState === "complete") {
+            completeInit();
+            return;
+        }
+
+        window.addEventListener("load", completeInit, { once: true });
+        const fallbackTimer = window.setTimeout(() => {
+            markInitialized();
+        }, 2200);
+
+        return () => {
+            window.removeEventListener("load", completeInit);
+            window.clearTimeout(fallbackTimer);
+        };
+    }, [$isInitialized, markInitialized]);
 
     useEffect(() => {
         let interval: number | undefined;
