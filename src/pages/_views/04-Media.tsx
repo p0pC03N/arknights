@@ -13,6 +13,24 @@ function getArticleId(article?: MediaArticle) {
   return href.split("?")[0].split("#")[0].split("/").filter(Boolean).pop() ?? "secret";
 }
 
+const VISUAL_ACCENTS = [
+  {
+    glow: "rgba(248,250,252,0.18)",
+    gradient:
+      "radial-gradient(circle at 34% 34%, rgba(248,250,252,.16), transparent 18%), radial-gradient(circle at 68% 62%, rgba(148,163,184,.14), transparent 20%), linear-gradient(140deg, rgba(2,6,23,.2), rgba(2,6,23,.72))",
+  },
+  {
+    glow: "rgba(125,211,252,0.24)",
+    gradient:
+      "radial-gradient(circle at 34% 28%, rgba(56,189,248,.22), transparent 18%), radial-gradient(circle at 72% 56%, rgba(186,230,253,.12), transparent 22%), linear-gradient(140deg, rgba(2,6,23,.2), rgba(2,6,23,.72))",
+  },
+  {
+    glow: "rgba(251,191,36,0.22)",
+    gradient:
+      "radial-gradient(circle at 38% 40%, rgba(250,204,21,.2), transparent 16%), radial-gradient(circle at 72% 54%, rgba(248,250,252,.1), transparent 20%), linear-gradient(140deg, rgba(2,6,23,.2), rgba(2,6,23,.72))",
+  },
+];
+
 export default function Media() {
   const $viewIndex = useStore(viewIndex);
   const $readyToTouch = useStore(readyToTouch);
@@ -30,8 +48,11 @@ export default function Media() {
     setActive(isActive);
   }, [$readyToTouch, $viewIndex]);
 
-  const activeArticle =
-    articles.find((article) => getArticleId(article as MediaArticle) === activeId) ?? (articles[0] as MediaArticle | undefined);
+  const activeIndex = Math.max(
+    0,
+    articles.findIndex((article) => getArticleId(article as MediaArticle) === activeId),
+  );
+  const accent = VISUAL_ACCENTS[activeIndex % VISUAL_ACCENTS.length];
 
   return (
     <div
@@ -41,18 +62,14 @@ export default function Media() {
       }`}
     >
       <div className="relative h-full w-full overflow-hidden bg-[#03070b]">
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30"
-          style={{ backgroundImage: `url(${rightImage})` }}
-        />
-        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(2,6,23,.9),rgba(2,6,23,.78)_45%,rgba(2,6,23,.92))]" />
-        <div className="absolute inset-0 panel-grid opacity-25" />
+        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(2,6,23,.9),rgba(2,6,23,.8)_45%,rgba(2,6,23,.92))]" />
+        <div className="absolute inset-0 panel-grid opacity-[0.16]" />
 
         <div className="absolute inset-x-[4.5rem] top-[8.75rem] bottom-[2.5rem] grid grid-cols-[minmax(17rem,26rem)_minmax(0,1fr)] gap-6 portrait:inset-x-[1.25rem] portrait:top-[8.75rem] portrait:grid-cols-1">
           <aside className="relative overflow-hidden rounded-[1.7rem] border border-white/10 bg-black/35 panel-grid panel-noise backdrop-blur-md glow-frame">
             <div className="border-b border-white/10 px-6 py-5">
               <div className="text-[0.72rem] font-benderBold tracking-[0.38em] text-white/45">SEALED CENTER</div>
-              <div className="mt-2 text-[2rem] font-benderBold tracking-[0.08em] text-white">封存</div>
+              <div className="mt-2 text-[2rem] font-benderBold tracking-[0.08em] text-white">{"\u5c01\u5b58"}</div>
             </div>
 
             <nav className="h-[calc(100%-6.5rem)] overflow-y-auto px-4 py-4">
@@ -89,53 +106,21 @@ export default function Media() {
             </nav>
           </aside>
 
-          <section className="relative overflow-hidden rounded-[1.9rem] border border-white/10 bg-black/35 panel-grid panel-noise backdrop-blur-md glow-frame">
+          <section className="relative overflow-hidden rounded-[1.9rem] border border-white/10 bg-black/35 panel-grid panel-noise backdrop-blur-md glow-frame portrait:hidden">
+            <div className="absolute inset-0 bg-cover bg-center opacity-24" style={{ backgroundImage: `url(${rightImage})` }} />
+            <div className="absolute inset-0 transition-all duration-500" style={{ backgroundImage: accent.gradient }} />
+            <div className="absolute inset-0 scanlines opacity-45" />
+            <div className="absolute inset-[2.75rem] rounded-[1.8rem] border border-white/10 bg-black/18" />
+            <div className="absolute inset-[5.5rem] rounded-[1.6rem] border border-white/10" />
+            <div className="absolute left-1/2 top-1/2 h-[16rem] w-[16rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/12" />
             <div
-              className="absolute inset-0 bg-cover bg-center opacity-20"
-              style={{ backgroundImage: `url(${rightImage})` }}
+              className="absolute left-1/2 top-1/2 h-[12rem] w-[12rem] -translate-x-1/2 -translate-y-1/2 rounded-full border"
+              style={{ borderColor: accent.glow, boxShadow: `0 0 42px ${accent.glow}` }}
             />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,.12),rgba(2,6,23,.72))]" />
-            <div className="absolute inset-0 scanlines opacity-40" />
-
-            <div className="relative flex h-full flex-col justify-between px-8 py-8 portrait:px-5">
-              <div>
-                <div className="text-[0.72rem] font-benderBold tracking-[0.38em] text-white/45">CURRENT ENTRY</div>
-                <div className="mt-4 text-[3rem] font-benderBold tracking-[0.08em] text-white portrait:text-[2rem]">
-                  {activeArticle?.title ?? "No Entry"}
-                </div>
-                <div className="mt-3 text-[0.95rem] text-white/68">{activeArticle?.subTitle ?? "点击左侧条目进入验证页。"}</div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-[1.2rem] border border-white/10 bg-black/30 px-4 py-4">
-                  <div className="text-[0.66rem] font-benderBold tracking-[0.3em] text-white/35">MODE</div>
-                  <div className="mt-3 text-[1.15rem] font-benderBold tracking-[0.06em] text-white">封存入口</div>
-                </div>
-                <div className="rounded-[1.2rem] border border-white/10 bg-black/30 px-4 py-4">
-                  <div className="text-[0.66rem] font-benderBold tracking-[0.3em] text-white/35">STATUS</div>
-                  <div className="mt-3 text-[1.15rem] font-benderBold tracking-[0.06em] text-white">
-                    {activeArticle?.locked ? "等待验证" : "公开内容"}
-                  </div>
-                </div>
-                <div className="rounded-[1.2rem] border border-white/10 bg-black/30 px-4 py-4">
-                  <div className="text-[0.66rem] font-benderBold tracking-[0.3em] text-white/35">PATH</div>
-                  <div className="mt-3 text-[1.15rem] font-benderBold tracking-[0.06em] text-white">{getArticleId((activeArticle ?? articles[0]) as MediaArticle)}</div>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-6">
-                <div className="text-[0.88rem] text-white/55">先到这里选条目，再进入单独的验证页。</div>
-                {activeArticle && (
-                  <a
-                    href={activeArticle.href}
-                    target="_self"
-                    className="rounded-[1rem] border border-slate-100/20 bg-slate-100/10 px-5 py-3 text-[0.78rem] font-benderBold tracking-[0.28em] text-white no-underline transition-colors duration-300 hover:bg-slate-100/18"
-                  >
-                    进入验证页
-                  </a>
-                )}
-              </div>
-            </div>
+            <div className="absolute inset-x-[12%] top-1/2 h-px -translate-y-1/2 bg-white/14" />
+            <div className="absolute inset-y-[14%] left-1/2 w-px -translate-x-1/2 bg-white/10" />
+            <div className="absolute inset-[17%] border border-white/8" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,transparent_44%,rgba(2,6,23,.58)_100%)]" />
           </section>
         </div>
       </div>
