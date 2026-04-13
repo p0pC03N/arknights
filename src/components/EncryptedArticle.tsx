@@ -9,7 +9,7 @@ export type EncryptedPayload = {
   ct_b64: string;
 };
 
-type UnlockStage = "locked" | "verifying" | "revealing" | "settling" | "unlocked" | "bad";
+type UnlockStage = "locked" | "verifying" | "revealing" | "unlocked" | "bad";
 type Presentation = "page" | "panel";
 type PreviewLineKind = "h1" | "h2" | "h3" | "paragraph" | "blockquote" | "code" | "list" | "blank" | "divider" | "meta";
 type PreviewLine = {
@@ -122,18 +122,18 @@ function parseHtmlToPreviewLines(html: string, width: number): PreviewLine[] {
 
     switch (tag) {
       case "h1":
-        if (text) pushWrappedLines(output, counter, "h1", text, Math.max(24, Math.floor(width * 0.72)));
+        if (text) pushWrappedLines(output, counter, "h1", text, Math.max(32, Math.floor(width * 0.9)));
         pushBlankLine(output, counter);
         return;
       case "h2":
-        if (text) pushWrappedLines(output, counter, "h2", text, Math.max(22, Math.floor(width * 0.78)));
+        if (text) pushWrappedLines(output, counter, "h2", text, Math.max(30, Math.floor(width * 0.94)));
         pushBlankLine(output, counter);
         return;
       case "h3":
       case "h4":
       case "h5":
       case "h6":
-        if (text) pushWrappedLines(output, counter, "h3", text, Math.max(18, Math.floor(width * 0.84)));
+        if (text) pushWrappedLines(output, counter, "h3", text, Math.max(24, Math.floor(width * 0.96)));
         pushBlankLine(output, counter);
         return;
       case "p":
@@ -141,11 +141,11 @@ function parseHtmlToPreviewLines(html: string, width: number): PreviewLine[] {
         pushBlankLine(output, counter);
         return;
       case "blockquote":
-        if (text) pushWrappedLines(output, counter, "blockquote", text, width - 2, "│ ", "  ");
+        if (text) pushWrappedLines(output, counter, "blockquote", text, width - 2, "| ", "  ");
         pushBlankLine(output, counter);
         return;
       case "pre": {
-        const codeLines = wrapCodeText(node.textContent ?? "", Math.max(16, width - 4));
+        const codeLines = wrapCodeText(node.textContent ?? "", Math.max(20, width - 2));
         codeLines.forEach((line) =>
           output.push({
             id: `line-${counter.value++}`,
@@ -160,7 +160,7 @@ function parseHtmlToPreviewLines(html: string, width: number): PreviewLine[] {
         Array.from(node.children).forEach((child) => {
           if (!(child instanceof HTMLElement) || child.tagName.toLowerCase() !== "li") return;
           const itemText = child.textContent?.replace(/\s+/g, " ").trim() ?? "";
-          if (itemText) pushWrappedLines(output, counter, "list", itemText, width - 3, "• ", "  ");
+          if (itemText) pushWrappedLines(output, counter, "list", itemText, width - 2, "- ", "  ");
         });
         pushBlankLine(output, counter);
         return;
@@ -169,16 +169,15 @@ function parseHtmlToPreviewLines(html: string, width: number): PreviewLine[] {
         Array.from(node.children).forEach((child, index) => {
           if (!(child instanceof HTMLElement) || child.tagName.toLowerCase() !== "li") return;
           const itemText = child.textContent?.replace(/\s+/g, " ").trim() ?? "";
-          if (itemText) {
-            const prefix = `${index + 1}. `;
-            pushWrappedLines(output, counter, "list", itemText, width - prefix.length, prefix, " ".repeat(prefix.length));
-          }
+          if (!itemText) return;
+          const prefix = `${index + 1}. `;
+          pushWrappedLines(output, counter, "list", itemText, width - prefix.length, prefix, " ".repeat(prefix.length));
         });
         pushBlankLine(output, counter);
         return;
       }
       case "hr":
-        output.push({ id: `line-${counter.value++}`, kind: "divider", text: "────────────────────────────────────────" });
+        output.push({ id: `line-${counter.value++}`, kind: "divider", text: "-".repeat(Math.max(30, Math.floor(width * 0.76))) });
         pushBlankLine(output, counter);
         return;
       case "img":
@@ -213,11 +212,11 @@ function parseHtmlToPreviewLines(html: string, width: number): PreviewLine[] {
 }
 
 function scrambleLine(line: string, revealRatio: number, salt: number) {
-  const glyphs = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>/[]{}#*%$&@";
+  const glyphs = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789<>/[]{}#*%$&@+=?:;!~";
 
   return Array.from(line)
     .map((char, index) => {
-      if (char === " ") return " ";
+      if (char === " ") return revealRatio >= 1 ? " " : "·";
       if (revealRatio >= 1 || index / Math.max(1, line.length - 1) < revealRatio) return char;
       return glyphs[(index * 17 + salt * 13) % glyphs.length];
     })
@@ -280,11 +279,11 @@ export async function decryptEncryptedPayload(payload: EncryptedPayload, passwor
 function previewLineClass(kind: PreviewLineKind) {
   switch (kind) {
     case "h1":
-      return "text-[2rem] font-benderBold tracking-[0.06em] text-white/96 leading-[1.18] mt-2";
+      return "text-[2rem] font-benderBold tracking-[0.05em] text-white/96 leading-[1.16] mt-2";
     case "h2":
-      return "text-[1.55rem] font-benderBold tracking-[0.06em] text-white/94 leading-[1.22] mt-2";
+      return "text-[1.55rem] font-benderBold tracking-[0.05em] text-white/94 leading-[1.22] mt-2";
     case "h3":
-      return "text-[1.22rem] font-benderBold tracking-[0.05em] text-white/92 leading-[1.28]";
+      return "text-[1.2rem] font-benderBold tracking-[0.04em] text-white/92 leading-[1.28]";
     case "blockquote":
       return "border-l border-cyan-100/22 pl-4 italic text-white/74";
     case "code":
@@ -292,7 +291,7 @@ function previewLineClass(kind: PreviewLineKind) {
     case "list":
       return "pl-2 text-white/82";
     case "divider":
-      return "text-cyan-100/34 tracking-[0.3em]";
+      return "text-cyan-100/34 tracking-[0.18em]";
     case "meta":
       return "text-cyan-100/58 tracking-[0.26em]";
     case "blank":
@@ -305,7 +304,6 @@ function previewLineClass(kind: PreviewLineKind) {
 function ArticleViewport({
   title,
   statusLine,
-  html,
   stage,
   displayLines,
   presentation,
@@ -313,14 +311,12 @@ function ArticleViewport({
 }: {
   title: string;
   statusLine: string;
-  html: string | null;
   stage: UnlockStage;
   displayLines: PreviewLine[];
   presentation: Presentation;
   scrollRef: MutableRefObject<HTMLDivElement | null>;
 }) {
-  const revealing = stage === "revealing" || stage === "settling";
-  const settling = stage === "settling";
+  const revealing = stage === "revealing";
 
   return (
     <div className={`relative ${presentation === "panel" ? "flex h-full flex-col" : ""}`}>
@@ -340,34 +336,21 @@ function ArticleViewport({
         data-root-scroll-lock="true"
         className={`min-h-0 overscroll-contain ${presentation === "panel" ? "flex-1 overflow-y-auto px-6 py-6" : "px-6 py-6"}`}
       >
-        <div className="relative">
-          <article
-            className={`sealed-article-body ${presentation === "panel" ? "sealed-article-body-panel" : ""} ${
-              revealing ? `sealed-article-underlay ${settling ? "sealed-article-underlay-visible" : ""}` : "animate-[article-fade-in_.55s_ease]"
-            }`}
-            dangerouslySetInnerHTML={{ __html: html ?? "" }}
-          />
-
-          {revealing ? (
-            <div className="pointer-events-none absolute inset-0 z-[2]">
-              <div
-                className={`sealed-article-body ${presentation === "panel" ? "sealed-article-body-panel" : ""} sealed-article-scramble-shell sealed-article-scramble ${
-                  settling ? "sealed-article-scramble-fade" : ""
-                }`}
-              >
-                {displayLines.map((line, index) => (
-                  <div
-                    key={line.id}
-                    data-decode-index={index}
-                    className={`sealed-article-scramble-line ${previewLineClass(line.kind)}`}
-                    style={{ animationDelay: `${index * 18}ms` }}
-                  >
-                    {line.text || "\u00A0"}
-                  </div>
-                ))}
-              </div>
+        <div
+          className={`sealed-article-body ${presentation === "panel" ? "sealed-article-body-panel" : ""} sealed-article-scramble-shell ${
+            revealing ? "sealed-article-scramble" : "sealed-article-preview"
+          }`}
+        >
+          {displayLines.map((line, index) => (
+            <div
+              key={line.id}
+              data-decode-index={index}
+              className={`${revealing ? "sealed-article-scramble-line" : "sealed-article-preview-line"} ${previewLineClass(line.kind)}`}
+              style={revealing ? { animationDelay: `${index * 18}ms` } : undefined}
+            >
+              {line.text || "\u00A0"}
             </div>
-          ) : null}
+          ))}
         </div>
       </div>
     </div>
@@ -398,7 +381,7 @@ function ValidationViewport({
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 px-6 py-4">
         <div>
           <div className="text-[0.72rem] font-benderBold tracking-[0.36em] text-white/42">SEALED ARCHIVE</div>
-          <div className="mt-2 text-[1.42rem] font-benderBold tracking-[0.08em] text-white">{"档案验证"}</div>
+          <div className="mt-2 text-[1.42rem] font-benderBold tracking-[0.08em] text-white">{"\u6863\u6848\u9a8c\u8bc1"}</div>
         </div>
 
         <div className="rounded-full border border-cyan-200/18 bg-cyan-200/8 px-4 py-2 text-[0.72rem] font-n15eMedium tracking-[0.34em] text-cyan-100/90">
@@ -420,7 +403,7 @@ function ValidationViewport({
               style={{ width: `${progress}%` }}
             />
           </div>
-          <div className="mt-4 text-[0.9rem] leading-7 text-white/66">{hint ?? "输入密码后开始验证。"}</div>
+          <div className="mt-4 text-[0.9rem] leading-7 text-white/66">{hint ?? "\u8f93\u5165\u5bc6\u7801\u540e\u5f00\u59cb\u9a8c\u8bc1\u3002"}</div>
         </div>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -428,7 +411,7 @@ function ValidationViewport({
             type="password"
             value={pw}
             onChange={(event) => onChange(event.target.value)}
-            placeholder="输入密钥"
+            placeholder="\u8f93\u5165\u5bc6\u94a5"
             className="h-[3.5rem] flex-1 rounded-[1.1rem] border border-white/10 bg-black/40 px-4 text-white outline-none transition-colors duration-300 focus:border-cyan-300/35"
             onKeyDown={(event) => {
               if (event.key !== "Enter") return;
@@ -462,7 +445,6 @@ export default function EncryptedArticle(props: {
   const { payload, hint, presentation = "page", title } = props;
 
   const [pw, setPw] = useState("");
-  const [html, setHtml] = useState<string | null>(null);
   const [stage, setStage] = useState<UnlockStage>("locked");
   const [statusLine, setStatusLine] = useState("WAITING");
   const [progress, setProgress] = useState(0);
@@ -479,16 +461,16 @@ export default function EncryptedArticle(props: {
     presentation === "panel"
       ? "relative flex h-full flex-col overflow-hidden rounded-[1.8rem] border border-cyan-200/12 bg-[#04070b]/94 panel-grid panel-noise glow-frame backdrop-blur-md"
       : "relative overflow-hidden rounded-[1.8rem] border border-cyan-200/12 bg-[#04070b]/94 panel-grid panel-noise glow-frame backdrop-blur-md";
-  const headerTitle = title ?? "封存档案";
-  const isArticleStage = stage === "revealing" || stage === "settling" || stage === "unlocked";
+  const headerTitle = title ?? "\u5c01\u5b58\u6863\u6848";
+  const isArticleStage = stage === "revealing" || stage === "unlocked";
 
   function measureDecodeColumns() {
     const fallbackWidth = presentation === "panel" ? 920 : 1080;
     const cardWidth = cardRef.current?.clientWidth ?? fallbackWidth;
     const usableWidth = Math.max(360, cardWidth - (presentation === "panel" ? 120 : 160));
-    const approxCharWidth = presentation === "panel" ? 9.1 : 9.6;
-    const minColumns = presentation === "panel" ? 68 : 80;
-    const maxColumns = presentation === "panel" ? 132 : 148;
+    const approxCharWidth = presentation === "panel" ? 7.8 : 8.3;
+    const minColumns = presentation === "panel" ? 84 : 92;
+    const maxColumns = presentation === "panel" ? 156 : 172;
     return Math.min(maxColumns, Math.max(minColumns, Math.floor(usableWidth / approxCharWidth)));
   }
 
@@ -497,12 +479,11 @@ export default function EncryptedArticle(props: {
 
     let tick = 0;
     let startTimer: number | undefined;
-    let settleTimer: number | undefined;
     let finishTimer: number | undefined;
     let intervalTimer: number | undefined;
-    const lineStagger = 3;
-    const decodeDuration = 10;
-    const totalTicks = sourceLines.length * lineStagger + decodeDuration + 18;
+    const lineStagger = 4;
+    const decodeDuration = 16;
+    const totalTicks = sourceLines.length * lineStagger + decodeDuration + 24;
 
     articleScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
 
@@ -525,28 +506,24 @@ export default function EncryptedArticle(props: {
           const anchor = viewport.querySelector<HTMLElement>(`[data-decode-index="${activeLineIndex}"]`);
           if (!anchor) return;
           const maxScroll = Math.max(0, viewport.scrollHeight - viewport.clientHeight);
-          const target = Math.min(maxScroll, Math.max(0, anchor.offsetTop - viewport.clientHeight * 0.26));
-          viewport.scrollTop += (target - viewport.scrollTop) * 0.32;
+          const target = Math.min(maxScroll, Math.max(0, anchor.offsetTop - viewport.clientHeight * 0.24));
+          viewport.scrollTop += (target - viewport.scrollTop) * 0.18;
         });
 
         if (tick >= totalTicks) {
           if (intervalTimer) window.clearInterval(intervalTimer);
-          settleTimer = window.setTimeout(() => {
-            setStage("settling");
-            setStatusLine("SYNCED");
-          }, 120);
+          setDisplayLines(sourceLines);
           finishTimer = window.setTimeout(() => {
             setStage("unlocked");
-            setStatusLine("VERIFIED");
-          }, 420);
+            setStatusLine("ARCHIVED");
+          }, 160);
         }
-      }, 84);
-    }, 520);
+      }, 96);
+    }, 780);
 
     return () => {
       if (startTimer) window.clearTimeout(startTimer);
       if (intervalTimer) window.clearInterval(intervalTimer);
-      if (settleTimer) window.clearTimeout(settleTimer);
       if (finishTimer) window.clearTimeout(finishTimer);
     };
   }, [sourceLines, stage]);
@@ -571,7 +548,7 @@ export default function EncryptedArticle(props: {
     setProgress(16);
 
     try {
-      await wait(160);
+      await wait(180);
       setStatusLine("MATCHING");
       setProgress(44);
 
@@ -580,9 +557,8 @@ export default function EncryptedArticle(props: {
 
       setStatusLine("DECODING");
       setProgress(82);
-      await wait(220);
+      await wait(260);
 
-      setHtml(out);
       setSourceLines(previewLines);
       setDisplayLines(
         previewLines.map((line, index) => ({
@@ -596,7 +572,6 @@ export default function EncryptedArticle(props: {
       setStage("bad");
       setStatusLine("LOCKED OUT");
       setProgress(4);
-      setHtml(null);
       setSourceLines([]);
       setDisplayLines([]);
       setWarningSeed((value) => value + 1);
@@ -610,9 +585,9 @@ export default function EncryptedArticle(props: {
       <div ref={cardRef} className={cardClass}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(255,255,255,.08),transparent_24%),radial-gradient(circle_at_76%_22%,rgba(56,189,248,.08),transparent_20%),linear-gradient(180deg,rgba(255,255,255,.02),rgba(2,6,23,.16)_30%,rgba(2,6,23,.52))]" />
 
-        {(stage === "revealing" || stage === "settling") && (
+        {stage === "revealing" && (
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute inset-y-0 left-[-18%] w-[18%] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,.34),transparent)]" style={{ animation: "decode-sweep 1.9s ease-out forwards" }} />
+            <div className="absolute inset-y-0 left-[-18%] w-[18%] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,.34),transparent)]" style={{ animation: "decode-sweep 2.4s ease-out forwards" }} />
           </div>
         )}
 
@@ -620,8 +595,7 @@ export default function EncryptedArticle(props: {
           {isArticleStage ? (
             <ArticleViewport
               title={headerTitle}
-              statusLine={stage === "revealing" || stage === "settling" ? "DECODING" : statusLine}
-              html={html}
+              statusLine={stage === "revealing" ? "DECODING" : statusLine}
               stage={stage}
               displayLines={displayLines}
               presentation={presentation}
@@ -653,7 +627,7 @@ export default function EncryptedArticle(props: {
                 <div className="space-y-1 font-n15eMedium text-[#a4001a]">
                   <div className="text-[1.15rem] tracking-[0.5em]">---⚠⚠⚠---</div>
                   <div className="text-[1.05rem] tracking-[0.42em]">---warning---</div>
-                  <div className="text-[2rem] tracking-[0.18em] portrait:text-[1.45rem]">---档案无权查看---</div>
+                  <div className="text-[2rem] tracking-[0.18em] portrait:text-[1.45rem]">---\u6863\u6848\u65e0\u6743\u67e5\u770b---</div>
                 </div>
               </div>
             </div>
