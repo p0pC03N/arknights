@@ -4,6 +4,15 @@ import type { FriendLink } from "../_types/ArknightsConfig";
 const base = import.meta.env.BASE_URL;
 const fallbackStatuses = ["ONLINE", "TRACE", "ACCESS", "ARCHIVED", "RELAY"];
 const panelSlots = ["hero", "east", "south", "west", "north", "south-east"];
+const slotRevealOrder: Record<string, number> = {
+  solo: 0,
+  hero: 0,
+  east: 1,
+  south: 2,
+  west: 3,
+  north: 4,
+  "south-east": 5,
+};
 
 function withBase(url?: string) {
   if (!url) return url;
@@ -80,6 +89,7 @@ export default function FriendLinksRift({
         const status = getPanelStatus(link, index);
         const code = getPanelCode(link, index);
         const host = getHostLabel(link.url);
+        const revealOrder = slotRevealOrder[slot] ?? index;
 
         return (
           <a
@@ -93,7 +103,7 @@ export default function FriendLinksRift({
             } ${reducedMotion ? "is-reduced" : ""}`}
             style={
               {
-                "--panel-delay": reducedMotion ? "0ms" : `${260 + index * 140}ms`,
+                "--panel-delay": reducedMotion ? "0ms" : `${220 + revealOrder * 140}ms`,
               } as CSSProperties
             }
           >

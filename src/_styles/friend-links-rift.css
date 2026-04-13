@@ -184,6 +184,11 @@
         linear-gradient(180deg, #070c14 0%, #02060d 62%, #010308 100%);
 }
 
+.rift-links-shell[data-stage="omen"],
+.rift-links-shell[data-stage="crack"] {
+    filter: brightness(.94);
+}
+
 .rift-links-shell::before {
     content: "";
     position: absolute;
@@ -201,6 +206,16 @@
 .rift-links-panels-layer {
     position: absolute;
     inset: 0;
+}
+
+.rift-links-surface-layer {
+    transition: filter .22s ease, transform .22s ease;
+}
+
+.rift-links-shell[data-stage="omen"] .rift-links-surface-layer,
+.rift-links-shell[data-stage="crack"] .rift-links-surface-layer {
+    transform: scale(.997);
+    filter: saturate(.95);
 }
 
 .rift-links-omen {
@@ -223,6 +238,7 @@
 .rift-links-surface-half {
     position: absolute;
     inset: 0;
+    display: flex;
     z-index: 14;
     pointer-events: none;
     background:
@@ -231,6 +247,106 @@
         linear-gradient(180deg, rgba(8, 13, 20, .96), rgba(3, 8, 12, .94) 60%, rgba(1, 3, 6, .99)),
         linear-gradient(90deg, rgba(255, 255, 255, .02), transparent 18%, transparent 82%, rgba(255, 255, 255, .015));
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .03);
+}
+
+.rift-links-surface-panel {
+    width: min(100%, 42rem);
+    display: flex;
+    flex-direction: column;
+    gap: .9rem;
+    padding: clamp(1.6rem, 3.5vw, 3rem);
+    color: rgba(226, 232, 240, .82);
+}
+
+.rift-links-surface-panel--left {
+    align-self: center;
+    align-items: flex-start;
+}
+
+.rift-links-surface-panel--right {
+    margin-left: auto;
+    align-self: center;
+    align-items: flex-end;
+    text-align: right;
+}
+
+.rift-links-surface-kicker {
+    font-size: .72rem;
+    letter-spacing: .34em;
+    text-transform: uppercase;
+    color: rgba(186, 230, 253, .62);
+}
+
+.rift-links-surface-title {
+    font-size: clamp(2rem, 3.2vw, 3.3rem);
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: rgba(248, 250, 252, .95);
+}
+
+.rift-links-surface-copy,
+.rift-links-surface-fineprint {
+    max-width: 28rem;
+    line-height: 1.75;
+    color: rgba(226, 232, 240, .7);
+}
+
+.rift-links-surface-lines {
+    display: flex;
+    flex-direction: column;
+    gap: .65rem;
+    width: min(100%, 27rem);
+}
+
+.rift-links-surface-line {
+    position: relative;
+    padding-left: 1.2rem;
+    font-size: .78rem;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: rgba(186, 230, 253, .62);
+}
+
+.rift-links-surface-line::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: .75rem;
+    height: 1px;
+    background: rgba(var(--rift-accent-rgb), .35);
+}
+
+.rift-links-surface-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .8rem;
+    width: min(100%, 25rem);
+}
+
+.rift-links-surface-stat {
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+    padding: .8rem .9rem;
+    background: rgba(255, 255, 255, .025);
+    border: 1px solid rgba(255, 255, 255, .05);
+}
+
+.rift-links-surface-stat-label {
+    font-size: .66rem;
+    letter-spacing: .28em;
+    text-transform: uppercase;
+    color: rgba(186, 230, 253, .56);
+}
+
+.rift-links-surface-stat-value {
+    font-size: 1.45rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: rgba(248, 250, 252, .92);
 }
 
 .rift-links-surface-half::before,
@@ -447,7 +563,7 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 1.2rem;
+    gap: .8rem;
     padding: clamp(1.2rem, 3vw, 2.4rem);
     opacity: 0;
     transition: opacity .36s ease;
@@ -457,38 +573,48 @@
     opacity: 1;
 }
 
-.rift-links-heading {
+.rift-links-depth-caption,
+.rift-links-depth-axes {
     position: relative;
     z-index: 1;
     width: min(100%, 84rem);
     margin: 0 auto;
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 1rem;
 }
 
-.rift-links-heading-kicker,
-.rift-links-heading-meta {
+.rift-links-depth-caption {
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+}
+
+.rift-links-depth-caption-tag,
+.rift-links-depth-axis {
     font-size: .72rem;
     letter-spacing: .32em;
     text-transform: uppercase;
     color: rgba(186, 230, 253, .62);
 }
 
-.rift-links-heading-title {
-    margin-top: .35rem;
-    font-size: clamp(2rem, 4vw, 3.2rem);
-    font-weight: 700;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    color: rgba(241, 245, 249, .96);
+.rift-links-depth-caption-rule {
+    flex: 0 0 min(14rem, 24vw);
+    height: 1px;
+    background: linear-gradient(90deg, rgba(var(--rift-accent-rgb), .26), rgba(255, 255, 255, .04));
+}
+
+.rift-links-depth-axes {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.rift-links-depth-axis {
+    opacity: .7;
 }
 
 .rift-links-panel-field {
     position: relative;
     width: min(100%, 84rem);
-    min-height: 34rem;
+    min-height: 33rem;
     margin: 0 auto;
     overflow: hidden;
 }
@@ -760,7 +886,8 @@
 }
 
 @media (max-width: 1180px) {
-    .rift-links-heading {
+    .rift-links-depth-caption,
+    .rift-links-depth-axes {
         width: min(100%, 72rem);
     }
 
@@ -795,6 +922,26 @@
         align-items: flex-start;
     }
 
+    .rift-links-depth-caption,
+    .rift-links-depth-axes,
+    .rift-links-panel-field {
+        width: 100%;
+    }
+
+    .rift-links-depth-axes {
+        flex-direction: column;
+    }
+
+    .rift-links-surface-panel {
+        width: min(100%, 32rem);
+        padding: 1.4rem;
+    }
+
+    .rift-links-surface-grid {
+        grid-template-columns: 1fr;
+        width: min(100%, 14rem);
+    }
+
     .rift-links-panel-field {
         min-height: 0;
         display: flex;
@@ -823,10 +970,6 @@
         inset: .85rem;
     }
 
-    .rift-links-heading-title {
-        font-size: 1.85rem;
-    }
-
     .rift-link-panel-body {
         align-items: flex-start;
     }
@@ -834,6 +977,16 @@
     .rift-link-panel-avatar-shell {
         width: 3.9rem;
         height: 3.9rem;
+    }
+
+    .rift-links-surface-title {
+        font-size: 1.6rem;
+    }
+
+    .rift-links-surface-line,
+    .rift-links-depth-caption-tag,
+    .rift-links-depth-axis {
+        letter-spacing: .22em;
     }
 }
 

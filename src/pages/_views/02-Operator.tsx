@@ -23,6 +23,16 @@ const stageRanks: Record<Stage, number> = {
 
 const depthParticleCount = 18;
 const debrisCount = 12;
+const surfaceLeftNotes = [
+  "external relay index",
+  "public contact records",
+  "verified outbound signals",
+];
+const surfaceRightStats = [
+  { label: "channels", value: "01" },
+  { label: "layer", value: "surface" },
+  { label: "state", value: "stable" },
+];
 
 export default function Operator() {
   const $viewIndex = useStore(viewIndex);
@@ -175,18 +185,53 @@ export default function Operator() {
         data-reduced-motion={prefersReducedMotion ? "true" : "false"}
         aria-labelledby="rift-links-heading"
       >
+        <h2 id="rift-links-heading" className="sr-only">
+          Friend links hidden behind a breached page surface
+        </h2>
+
         <div className="rift-links-surface-layer" aria-hidden="true">
           <div className={`rift-links-omen ${stageLevel >= stageRanks.omen ? "is-live" : ""}`} />
           <div
             className={`rift-links-surface-half rift-links-surface-half--left ${
               stageLevel >= stageRanks.crack ? "is-scored" : ""
             } ${stageLevel >= stageRanks.tear ? "is-open" : ""}`}
-          />
+          >
+            <div className="rift-links-surface-panel rift-links-surface-panel--left">
+              <div className="rift-links-surface-kicker">PROFILE</div>
+              <div className="rift-links-surface-title">External Contacts</div>
+              <div className="rift-links-surface-copy">
+                Normal page surface. Verified external contact routes are listed
+                here until the structure gives way.
+              </div>
+              <div className="rift-links-surface-lines">
+                {surfaceLeftNotes.map((item) => (
+                  <span key={item} className="rift-links-surface-line">
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
           <div
             className={`rift-links-surface-half rift-links-surface-half--right ${
               stageLevel >= stageRanks.crack ? "is-scored" : ""
             } ${stageLevel >= stageRanks.tear ? "is-open" : ""}`}
-          />
+          >
+            <div className="rift-links-surface-panel rift-links-surface-panel--right">
+              <div className="rift-links-surface-grid">
+                {surfaceRightStats.map((item) => (
+                  <div key={item.label} className="rift-links-surface-stat">
+                    <span className="rift-links-surface-stat-label">{item.label}</span>
+                    <span className="rift-links-surface-stat-value">{item.value}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="rift-links-surface-fineprint">
+                Any anomaly below this plane indicates a sealed depth chamber.
+              </div>
+            </div>
+          </div>
         </div>
 
         <div
@@ -260,14 +305,19 @@ export default function Operator() {
             stageLevel >= stageRanks.depth ? "is-visible" : ""
           }`}
         >
-          <div className="rift-links-heading">
-            <div>
-              <p className="rift-links-heading-kicker">PROFILE</p>
-              <h2 id="rift-links-heading" className="rift-links-heading-title">
-                External Relays
-              </h2>
-            </div>
-            <p className="rift-links-heading-meta">Surface breach / hidden channels</p>
+          <div className="rift-links-depth-caption">
+            <span className="rift-links-depth-caption-tag">subspace archive</span>
+            <span className="rift-links-depth-caption-rule" />
+            <span className="rift-links-depth-caption-tag">external relays</span>
+          </div>
+
+          <div className="rift-links-depth-axes" aria-hidden="true">
+            <span className="rift-links-depth-axis rift-links-depth-axis--top">
+              breach aperture / sealed layer below
+            </span>
+            <span className="rift-links-depth-axis rift-links-depth-axis--bottom">
+              relay nodes unlocking in sequence
+            </span>
           </div>
 
           <FriendLinksRift
