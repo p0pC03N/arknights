@@ -9,6 +9,21 @@ function withBase(url?: string) {
   return base + url;
 }
 
+function getHostLabel(url: string) {
+  try {
+    return new URL(url).host.replace(/^www\./i, "");
+  } catch {
+    return url.replace(/^https?:\/\//i, "").replace(/\/$/, "");
+  }
+}
+
+function getGlyph(name: string) {
+  const clean = name.trim();
+  return clean ? clean[0].toUpperCase() : "?";
+}
+
+const panelStatuses = ["ONLINE", "TRUSTED", "RELAY", "DIRECT", "KNOWN"];
+
 export type FriendLink = {
   name: string;
   url: string;
@@ -16,55 +31,84 @@ export type FriendLink = {
   avatar?: string;
 };
 
-export default function FriendLinks({ links }: { links: FriendLink[] }) {
+export default function FriendLinks({
+  links,
+  active = false,
+}: {
+  links: FriendLink[];
+  active?: boolean;
+}) {
   if (!links || links.length === 0) {
     return (
-      <div className="w-full max-w-5xl mx-auto p-6 text-white/80">
-        <div className="text-xl font-bold mb-2">友链</div>
-        <div className="text-sm opacity-80">
-          暂无友链（去 arknights.config.tsx 添加 friendLinks）
+      <div className="friend-link-empty">
+        <div className="friend-link-empty-kicker">PROFILE</div>
+        <div className="friend-link-empty-title">NO LINKS CONFIGURED</div>
+        <div className="friend-link-empty-copy">
+          Add <code>rootPage.OPERATOR.friendLinks</code> in
+          <code> arknights.config.tsx</code>.
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto p-6 text-white">
-      <div className="mb-4">
-        <div className="text-2xl font-bold">友链</div>
-        <div className="text-sm opacity-70">Links / Friends</div>
-      </div>
+    <div className="friend-link-grid" data-root-scroll-lock="true">
+      {links.map((it, index) => {
+        const status = panelStatuses[index % panelStatuses.length];
+        const host = getHostLabel(it.url);
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {links.map((it) => (
+        return (
           <a
             key={it.url}
             href={it.url}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-4 rounded-xl border border-white/10 hover:border-white/30 bg-black/30 p-4 transition"
+            className={`friend-link-panel ${active ? "is-active" : ""}`}
+            style={
+              {
+                "--panel-delay": `${index * 120}ms`,
+              } as React.CSSProperties
+            }
           >
-            {it.avatar ? (
-              <img
-                src={withBase(it.avatar)}
-                alt={it.name}
-                className="w-12 h-12 rounded-full object-cover"
-                loading="lazy"
-              />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-white/10" />
-            )}
+            <span className="friend-link-panel-scan" />
+            <div className="friend-link-panel-meta">
+              <span className="friend-link-panel-id">
+                LINK-{String(index + 1).padStart(2, "0")}
+              </span>
+              <span className="friend-link-panel-state">{status}</span>
+            </div>
 
-            <div className="min-w-0">
-              <div className="font-semibold text-lg truncate">{it.name}</div>
-              {it.desc && (
-                <div className="text-sm opacity-80 truncate">{it.desc}</div>
-              )}
-              <div className="text-xs opacity-60 truncate">{it.url}</div>
+            <div className="friend-link-panel-main">
+              <div className="friend-link-avatar-shell">
+                {it.avatar ? (
+                  <img
+                    src={withBase(it.avatar)}
+                    alt={it.name}
+                    className="friend-link-avatar"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="friend-link-avatar-fallback">
+                    {getGlyph(it.name)}
+                  </div>
+                )}
+              </div>
+
+              <div className="friend-link-panel-copy">
+                <div className="friend-link-panel-title">{it.name}</div>
+                <div className="friend-link-panel-desc">
+                  {it.desc || "No note attached."}
+                </div>
+              </div>
+            </div>
+
+            <div className="friend-link-panel-footer">
+              <span className="friend-link-panel-host">{host}</span>
+              <span className="friend-link-panel-enter">ENTER</span>
             </div>
           </a>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }
