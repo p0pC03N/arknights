@@ -3,15 +3,14 @@ import type { FriendLink } from "../_types/ArknightsConfig";
 
 const base = import.meta.env.BASE_URL;
 const fallbackStatuses = ["ONLINE", "TRACE", "ACCESS", "ARCHIVED", "RELAY"];
-const panelSlots = ["hero", "east", "south", "west", "north", "south-east"];
+const panelSlots = ["west", "east", "south", "north", "south-east"];
 const slotRevealOrder: Record<string, number> = {
-  solo: 0,
-  hero: 0,
+  relay: 0,
+  west: 0,
   east: 1,
   south: 2,
-  west: 3,
-  north: 4,
-  "south-east": 5,
+  north: 3,
+  "south-east": 4,
 };
 
 function withBase(url?: string) {
@@ -43,10 +42,10 @@ function getPanelStatus(link: FriendLink, index: number) {
 }
 
 function getPanelSlot(count: number, index: number) {
-  if (count <= 1) return "solo";
-  if (count === 2) return ["hero", "east"][index] ?? "hero";
-  if (count === 3) return ["hero", "east", "south"][index] ?? "south";
-  if (count === 4) return ["hero", "west", "east", "south"][index] ?? "south";
+  if (count <= 1) return "relay";
+  if (count === 2) return ["west", "east"][index] ?? "east";
+  if (count === 3) return ["west", "east", "south"][index] ?? "south";
+  if (count === 4) return ["west", "east", "north", "south"][index] ?? "south";
   return panelSlots[index % panelSlots.length];
 }
 
@@ -61,8 +60,6 @@ export default function FriendLinksRift({
   active = false,
   reducedMotion = false,
 }: FriendLinksRiftProps) {
-  // Empty state stays in the same visual language so the scene does not collapse
-  // into a generic placeholder when there are no configured links yet.
   if (!links || links.length === 0) {
     return (
       <div className="rift-links-empty">
@@ -103,7 +100,7 @@ export default function FriendLinksRift({
             } ${reducedMotion ? "is-reduced" : ""}`}
             style={
               {
-                "--panel-delay": reducedMotion ? "0ms" : `${220 + revealOrder * 140}ms`,
+                "--panel-delay": reducedMotion ? "0ms" : `${260 + revealOrder * 150}ms`,
               } as CSSProperties
             }
           >

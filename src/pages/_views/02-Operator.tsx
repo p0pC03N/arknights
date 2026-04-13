@@ -21,30 +21,42 @@ const stageRanks: Record<Stage, number> = {
   steady: 6,
 };
 
-const depthParticleCount = 18;
-const debrisCount = 12;
+const depthParticleCount = 12;
+const debrisCount = 10;
 const mainCrackPath =
-  "M164 24 C182 74 130 122 170 176 C206 225 132 286 182 352 C214 406 150 474 196 538 C228 590 168 666 210 734 C236 792 192 862 220 928";
+  "M160 28 C182 86 126 140 168 204 C204 256 136 324 180 398 C212 454 150 528 194 602 C220 654 164 730 206 806 C232 858 190 918 214 962";
 const branchCrackPaths = [
-  "M170 176 C138 204 126 228 134 262",
-  "M181 352 C212 376 224 404 218 438",
-  "M196 538 C162 560 150 592 156 622",
+  "M170 204 C138 226 126 252 134 286",
+  "M180 398 C210 426 220 456 216 488",
+  "M194 602 C164 620 150 652 156 684",
 ];
 const surfaceLeftNotes = [
-  "external relay index",
-  "public contact records",
-  "verified outbound signals",
+  "relay archive / public coordinates",
+  "surface lattice / integrity nominal",
+  "sealed layer / external nodes below",
 ];
 const surfaceRightStats = [
-  { label: "channels", value: "01" },
-  { label: "layer", value: "surface" },
-  { label: "state", value: "stable" },
+  { label: "shell", value: "01" },
+  { label: "stress", value: "latent" },
+  { label: "relay", value: "locked" },
 ];
 const depthMarkers = [
-  { label: "A1", left: "21%", top: "28%" },
-  { label: "C4", left: "74%", top: "26%" },
-  { label: "D7", left: "67%", top: "72%" },
-  { label: "H3", left: "32%", top: "66%" },
+  { label: "A1", left: "22%", top: "28%" },
+  { label: "C4", left: "73%", top: "24%" },
+  { label: "D7", left: "66%", top: "69%" },
+  { label: "H3", left: "31%", top: "66%" },
+];
+const leftStressTraces = [
+  { top: "16%", width: "38%", right: "8%" },
+  { top: "29%", width: "51%", right: "12%" },
+  { top: "64%", width: "44%", right: "6%" },
+  { top: "78%", width: "30%", right: "16%" },
+];
+const rightStressTraces = [
+  { top: "14%", width: "33%", left: "10%" },
+  { top: "34%", width: "45%", left: "8%" },
+  { top: "58%", width: "40%", left: "14%" },
+  { top: "76%", width: "28%", left: "20%" },
 ];
 
 export default function Operator() {
@@ -66,11 +78,11 @@ export default function Operator() {
     () =>
       Array.from({ length: depthParticleCount }, (_, index) => ({
         id: index,
-        left: `${8 + ((index * 17) % 84)}%`,
-        top: `${9 + ((index * 13) % 72)}%`,
-        size: `${2 + (index % 4)}px`,
-        duration: `${8 + (index % 5) * 1.25}s`,
-        delay: `${-(index % 6) * 0.35}s`,
+        left: `${10 + ((index * 19) % 78)}%`,
+        top: `${12 + ((index * 17) % 68)}%`,
+        size: `${2 + (index % 3)}px`,
+        duration: `${10 + (index % 4) * 1.4}s`,
+        delay: `${-(index % 5) * 0.55}s`,
       })),
     [],
   );
@@ -79,12 +91,14 @@ export default function Operator() {
     () =>
       Array.from({ length: debrisCount }, (_, index) => ({
         id: index,
-        left: `${52 + ((index * 7) % 18)}%`,
-        top: `${12 + ((index * 9) % 70)}%`,
-        width: `${6 + (index % 4) * 3}px`,
-        height: `${2 + (index % 3)}px`,
-        rotate: `${-32 + (index % 8) * 10}deg`,
-        delay: `${index * 40}ms`,
+        left: `${45 + ((index * 7) % 20)}%`,
+        top: `${12 + ((index * 11) % 72)}%`,
+        width: `${4 + (index % 4) * 2}px`,
+        height: `${2 + (index % 2)}px`,
+        rotate: `${-24 + (index % 7) * 8}deg`,
+        driftX: `${index % 2 === 0 ? -12 - index : 14 + index}px`,
+        driftY: `${-8 - (index % 4) * 4}px`,
+        delay: `${index * 42}ms`,
       })),
     [],
   );
@@ -116,7 +130,6 @@ export default function Operator() {
       return;
     }
 
-    // Trigger the breach only once after the PROFILE section is truly visible.
     const target = sectionRef.current;
     if (!target) {
       return;
@@ -164,15 +177,13 @@ export default function Operator() {
       return;
     }
 
-    // Stage timing is intentionally serialized so the section reads like a
-    // cinematic reveal instead of multiple effects firing at once.
     setStage("omen");
 
     const timers: Array<ReturnType<typeof window.setTimeout>> = [
-      window.setTimeout(() => setStage("crack"), 180),
-      window.setTimeout(() => setStage("tear"), 420),
-      window.setTimeout(() => setStage("depth"), 760),
-      window.setTimeout(() => setStage("panels"), 1120),
+      window.setTimeout(() => setStage("crack"), 190),
+      window.setTimeout(() => setStage("tear"), 380),
+      window.setTimeout(() => setStage("depth"), 790),
+      window.setTimeout(() => setStage("panels"), 1180),
       window.setTimeout(() => setStage("steady"), 1760),
     ];
 
@@ -182,6 +193,11 @@ export default function Operator() {
   }, [hasEntered, prefersReducedMotion]);
 
   const stageLevel = stageRanks[stage];
+  const isCracked = stageLevel >= stageRanks.crack;
+  const isOpening = stageLevel >= stageRanks.tear;
+  const isDepthVisible = stageLevel >= stageRanks.depth;
+  const isPanelsVisible = stageLevel >= stageRanks.panels || prefersReducedMotion;
+  const isSettled = stageLevel >= stageRanks.steady;
 
   return (
     <div
@@ -199,69 +215,113 @@ export default function Operator() {
         aria-labelledby="rift-links-heading"
       >
         <h2 id="rift-links-heading" className="sr-only">
-          Friend links hidden behind a breached page surface
+          Friend links revealed behind a ruptured profile surface
         </h2>
 
-        <div className="rift-links-surface-layer" aria-hidden="true">
-          <div className={`rift-links-omen ${stageLevel >= stageRanks.omen ? "is-live" : ""}`} />
+        <div className="rift-surface-base" aria-hidden="true">
+          <div className={`rift-surface-omen ${stageLevel >= stageRanks.omen ? "is-live" : ""}`} />
+          <div className="rift-surface-grid" />
+
           <div
-            className={`rift-links-surface-half rift-links-surface-half--left ${
-              stageLevel >= stageRanks.crack ? "is-scored" : ""
-            } ${stageLevel >= stageRanks.tear ? "is-open" : ""}`}
+            className={`rift-surface-split rift-surface-split--left ${
+              isCracked ? "is-cracked" : ""
+            } ${isOpening ? "is-opening" : ""} ${isSettled ? "is-settled" : ""}`}
           >
-            <div className="rift-links-surface-panel rift-links-surface-panel--left">
-              <div className="rift-links-surface-kicker">PROFILE</div>
-              <div className="rift-links-surface-title">External Contacts</div>
-              <div className="rift-links-surface-copy">
-                Normal page surface. Verified external contact routes are listed
-                here until the structure gives way.
+            <span className="rift-surface-band rift-surface-band--mid" />
+            <span className="rift-surface-band rift-surface-band--near" />
+
+            <div className="rift-surface-copy rift-surface-copy--left">
+              <div className="rift-surface-kicker">PROFILE</div>
+              <div className="rift-surface-title">External Relay Index</div>
+              <div className="rift-surface-copytext">
+                Surface layer still reads as a normal page until stress reaches the
+                sealed coordinates beneath it.
               </div>
-              <div className="rift-links-surface-lines">
+              <div className="rift-surface-note-list">
                 {surfaceLeftNotes.map((item) => (
-                  <span key={item} className="rift-links-surface-line">
+                  <span key={item} className="rift-surface-note">
                     {item}
                   </span>
                 ))}
               </div>
             </div>
+
+            <div className="rift-surface-traces">
+              {leftStressTraces.map((trace) => (
+                <span
+                  key={`${trace.top}-${trace.width}`}
+                  className="rift-surface-trace"
+                  style={
+                    {
+                      top: trace.top,
+                      width: trace.width,
+                      right: trace.right,
+                    } as CSSProperties
+                  }
+                />
+              ))}
+            </div>
           </div>
 
           <div
-            className={`rift-links-surface-half rift-links-surface-half--right ${
-              stageLevel >= stageRanks.crack ? "is-scored" : ""
-            } ${stageLevel >= stageRanks.tear ? "is-open" : ""}`}
+            className={`rift-surface-split rift-surface-split--right ${
+              isCracked ? "is-cracked" : ""
+            } ${isOpening ? "is-opening" : ""} ${isSettled ? "is-settled" : ""}`}
           >
-            <div className="rift-links-surface-panel rift-links-surface-panel--right">
-              <div className="rift-links-surface-grid">
+            <span className="rift-surface-band rift-surface-band--mid" />
+            <span className="rift-surface-band rift-surface-band--near" />
+
+            <div className="rift-surface-copy rift-surface-copy--right">
+              <div className="rift-surface-stat-grid">
                 {surfaceRightStats.map((item) => (
-                  <div key={item.label} className="rift-links-surface-stat">
-                    <span className="rift-links-surface-stat-label">{item.label}</span>
-                    <span className="rift-links-surface-stat-value">{item.value}</span>
+                  <div key={item.label} className="rift-surface-stat">
+                    <span className="rift-surface-stat-label">{item.label}</span>
+                    <span className="rift-surface-stat-value">{item.value}</span>
                   </div>
                 ))}
               </div>
-              <div className="rift-links-surface-fineprint">
-                Any anomaly below this plane indicates a sealed depth chamber.
+              <div className="rift-surface-fineprint">
+                Any offset beyond this plane indicates the profile shell has begun to
+                fail.
               </div>
+            </div>
+
+            <div className="rift-surface-traces">
+              {rightStressTraces.map((trace) => (
+                <span
+                  key={`${trace.top}-${trace.width}`}
+                  className="rift-surface-trace"
+                  style={
+                    {
+                      top: trace.top,
+                      width: trace.width,
+                      left: trace.left,
+                    } as CSSProperties
+                  }
+                />
+              ))}
             </div>
           </div>
         </div>
 
         <div
-          className={`rift-links-depth-layer ${
-            stageLevel >= stageRanks.depth ? "is-exposed" : ""
-          }`}
+          className={`rift-depth-chamber ${isOpening ? "is-breached" : ""} ${
+            isDepthVisible ? "is-exposed" : ""
+          } ${isSettled ? "is-settled" : ""}`}
           aria-hidden="true"
         >
-          <div className="rift-links-depth-grid" />
-          <div className="rift-links-depth-fog" />
-          <div className="rift-links-depth-halo" />
-          <div className="rift-links-depth-scan" />
-          <div className="rift-links-depth-markers">
+          <div className="rift-depth-wall rift-depth-wall--left" />
+          <div className="rift-depth-wall rift-depth-wall--right" />
+          <div className="rift-depth-wall rift-depth-wall--far" />
+          <div className="rift-depth-grid-overlay" />
+          <div className="rift-depth-fog" />
+          <div className="rift-depth-scan" />
+
+          <div className="rift-depth-markers">
             {depthMarkers.map((marker) => (
               <span
                 key={marker.label}
-                className="rift-links-depth-marker"
+                className="rift-depth-marker"
                 style={
                   {
                     left: marker.left,
@@ -269,8 +329,8 @@ export default function Operator() {
                   } as CSSProperties
                 }
               >
-                <span className="rift-links-depth-marker-cross" />
-                <span className="rift-links-depth-marker-label">{marker.label}</span>
+                <span className="rift-depth-marker-cross" />
+                <span className="rift-depth-marker-label">{marker.label}</span>
               </span>
             ))}
           </div>
@@ -278,7 +338,7 @@ export default function Operator() {
           {depthParticles.map((particle) => (
             <span
               key={particle.id}
-              className="rift-links-depth-particle"
+              className="rift-depth-particle"
               style={
                 {
                   left: particle.left,
@@ -294,37 +354,33 @@ export default function Operator() {
         </div>
 
         <div
-          className={`rift-links-tear-layer ${
-            stageLevel >= stageRanks.crack ? "is-visible" : ""
-          } ${stageLevel >= stageRanks.steady ? "is-settled" : ""}`}
+          className={`rift-fracture-edge ${isCracked ? "is-visible" : ""} ${
+            isSettled ? "is-settled" : ""
+          }`}
           aria-hidden="true"
         >
-          <span className="rift-links-tear-shadow" />
-          <span className="rift-links-tear-rim rift-links-tear-rim--outer" />
-          <span className="rift-links-tear-rim rift-links-tear-rim--inner" />
-          <span className="rift-links-tear-core" />
+          <span className="rift-fracture-face rift-fracture-face--left" />
+          <span className="rift-fracture-face rift-fracture-face--right" />
+          <span className="rift-fracture-noise" />
+          <span className="rift-fracture-glow" />
+
           <svg
-            className="rift-links-seam-svg"
-            viewBox="0 0 320 960"
+            className="rift-fracture-seam"
+            viewBox="0 0 320 1000"
             preserveAspectRatio="none"
           >
             <path
-              className="rift-links-seam-path rift-links-seam-path--outer"
+              className="rift-fracture-seam-path rift-fracture-seam-path--outer"
               d={mainCrackPath}
             />
             <path
-              className="rift-links-seam-path rift-links-seam-path--noise"
+              className="rift-fracture-seam-path rift-fracture-seam-path--inner"
               d={mainCrackPath}
             />
-            <path
-              className="rift-links-seam-path rift-links-seam-path--inner"
-              d={mainCrackPath}
-            />
-
             {branchCrackPaths.map((path, index) => (
               <path
                 key={path}
-                className={`rift-links-seam-path rift-links-seam-path--branch rift-links-seam-path--branch-${index}`}
+                className={`rift-fracture-seam-path rift-fracture-seam-path--branch rift-fracture-seam-path--branch-${index}`}
                 d={path}
               />
             ))}
@@ -332,23 +388,22 @@ export default function Operator() {
         </div>
 
         <div
-          className={`rift-links-debris-layer ${
-            stageLevel >= stageRanks.tear ? "is-active" : ""
-          }`}
+          className={`rift-debris-layer ${isOpening ? "is-active" : ""}`}
           aria-hidden="true"
         >
           {debris.map((item) => (
             <span
               key={item.id}
-              className="rift-links-debris-piece"
+              className="rift-debris-piece"
               style={
                 {
                   left: item.left,
                   top: item.top,
                   width: item.width,
                   height: item.height,
-                  transform: `rotate(${item.rotate})`,
                   "--piece-rotate": item.rotate,
+                  "--piece-drift-x": item.driftX,
+                  "--piece-drift-y": item.driftY,
                   "--debris-delay": item.delay,
                 } as CSSProperties
               }
@@ -356,29 +411,16 @@ export default function Operator() {
           ))}
         </div>
 
-        <div
-          className={`rift-links-panels-layer ${
-            stageLevel >= stageRanks.depth ? "is-visible" : ""
-          }`}
-        >
-          <div className="rift-links-depth-caption">
-            <span className="rift-links-depth-caption-tag">subspace archive</span>
-            <span className="rift-links-depth-caption-rule" />
-            <span className="rift-links-depth-caption-tag">external relays</span>
-          </div>
-
-          <div className="rift-links-depth-axes" aria-hidden="true">
-            <span className="rift-links-depth-axis rift-links-depth-axis--top">
-              breach aperture / sealed layer below
-            </span>
-            <span className="rift-links-depth-axis rift-links-depth-axis--bottom">
-              relay nodes unlocking in sequence
-            </span>
+        <div className={`rift-relay-panels ${isDepthVisible ? "is-visible" : ""}`}>
+          <div className="rift-relay-caption">
+            <span className="rift-relay-caption-tag">sealed relays</span>
+            <span className="rift-relay-caption-rule" />
+            <span className="rift-relay-caption-tag">unseal sequence</span>
           </div>
 
           <FriendLinksRift
             links={links}
-            active={stageLevel >= stageRanks.panels || prefersReducedMotion}
+            active={isPanelsVisible}
             reducedMotion={prefersReducedMotion}
           />
         </div>
