@@ -14,25 +14,15 @@ export type OwnerInfoFooterLink = {
   portraitHidden?: boolean;
 };
 
-export type FriendLink = {
-  name: string;
-  url: string;
-  desc?: string;
-  avatar?: string;
-  status?: string;
-  code?: string;
-};
-
-// ✅ 泰拉万象（MEDIA）文章条目
 export type TerraOmniaArticle = {
   title: string;
   subTitle?: string;
   date?: string;
   href: string;
-  locked?: boolean; // 🔒 是否加密
-  secretId?: string; // 🔒 对应 src/content/secret/<id>.payload.json 的 <id>
-  keyHint?: string;  // 🔒 输入框提示文案（例如“提示：Xi3xi3”）
-  rememberKey?: string; // 🔒 localStorage 的 key（不同文档可用不同 key）
+  locked?: boolean;
+  secretId?: string;
+  keyHint?: string;
+  rememberKey?: string;
 };
 
 export type ArknightsConfig = {
@@ -58,8 +48,6 @@ export type ArknightsConfig = {
       Weibo?: string;
       TapTap?: string;
       GitHub?: string;
-
-      // ✅ 你要加邮箱就加这个
       Email?: string;
     };
     ownerInfo: {
@@ -90,11 +78,6 @@ export type ArknightsConfig = {
       };
     };
 
-    // ✅ 干员页（用来挂友链数据）
-    OPERATOR?: {
-      friendLinks?: FriendLink[];
-    };
-
     WORLD: {
       items: {
         title: string;
@@ -104,11 +87,9 @@ export type ArknightsConfig = {
       }[];
     };
 
-    // ✅ 新增：MEDIA（泰拉万象）
     MEDIA?: {
-      rightImage: string; // 右侧固定一张图（像友链那样）
-      articles: TerraOmniaArticle[]; // 左侧 3/10 列表
+      rightImage: string;
+      articles: TerraOmniaArticle[];
     };
   };
 };
-
