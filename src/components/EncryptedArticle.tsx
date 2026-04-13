@@ -71,7 +71,7 @@ function scrambleLine(line: string, revealRatio: number, salt: number) {
   return Array.from(line)
     .map((char, index) => {
       if (char === " ") return " ";
-      if (revealRatio >= 1 || index / Math.max(1, line.length - 1) < revealRatio) return "\u00A0";
+      if (revealRatio >= 1 || index / Math.max(1, line.length - 1) < revealRatio) return char;
       return glyphs[(index * 17 + salt * 13) % glyphs.length];
     })
     .join("");
@@ -174,8 +174,8 @@ function ArticleViewport({
           />
 
           {revealing ? (
-            <div className="pointer-events-none absolute inset-0">
-              <div className={`sealed-article-body ${presentation === "panel" ? "sealed-article-body-panel" : ""} sealed-article-scramble`}>
+            <div className="pointer-events-none absolute inset-0 z-[2]">
+              <div className={`sealed-article-body ${presentation === "panel" ? "sealed-article-body-panel" : ""} sealed-article-scramble-shell sealed-article-scramble`}>
                 {displayLines.map((line, index) => (
                   <div key={`${index}-${line.slice(0, 10)}`} className="sealed-article-scramble-line" style={{ animationDelay: `${index * 18}ms` }}>
                     {line || "\u00A0"}
@@ -305,8 +305,9 @@ export default function EncryptedArticle(props: {
     let startTimer: number | undefined;
     let settleTimer: number | undefined;
     let intervalTimer: number | undefined;
-    const ticksPerLine = 6;
-    const totalTicks = sourceLines.length * ticksPerLine + 14;
+    const lineStagger = 2;
+    const decodeDuration = 7;
+    const totalTicks = sourceLines.length * lineStagger + decodeDuration + 12;
 
     articleScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
 
@@ -318,7 +319,7 @@ export default function EncryptedArticle(props: {
         setDisplayLines(
           sourceLines.map((line, index) => {
             if (!line) return "";
-            const revealRatio = Math.min(1, Math.max(0, (tick - index * ticksPerLine) / ticksPerLine));
+            const revealRatio = Math.min(1, Math.max(0, (tick - index * lineStagger) / decodeDuration));
             return scrambleLine(line, revealRatio, tick + index * 9);
           }),
         );
@@ -327,7 +328,7 @@ export default function EncryptedArticle(props: {
           const viewport = articleScrollRef.current;
           if (!viewport) return;
           const maxScroll = Math.max(0, viewport.scrollHeight - viewport.clientHeight);
-          viewport.scrollTop = maxScroll * Math.min(0.3, decodeProgress * 0.3);
+          viewport.scrollTop = maxScroll * Math.min(0.34, decodeProgress * 0.34);
         });
 
         if (tick >= totalTicks) {
@@ -335,10 +336,10 @@ export default function EncryptedArticle(props: {
           settleTimer = window.setTimeout(() => {
             setStage("unlocked");
             setStatusLine("VERIFIED");
-          }, 120);
+          }, 160);
         }
-      }, 72);
-    }, 420);
+      }, 84);
+    }, 520);
 
     return () => {
       if (startTimer) window.clearTimeout(startTimer);
