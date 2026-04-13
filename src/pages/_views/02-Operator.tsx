@@ -23,6 +23,13 @@ const stageRanks: Record<Stage, number> = {
 
 const depthParticleCount = 18;
 const debrisCount = 12;
+const mainCrackPath =
+  "M164 24 C182 74 130 122 170 176 C206 225 132 286 182 352 C214 406 150 474 196 538 C228 590 168 666 210 734 C236 792 192 862 220 928";
+const branchCrackPaths = [
+  "M170 176 C138 204 126 228 134 262",
+  "M181 352 C212 376 224 404 218 438",
+  "M196 538 C162 560 150 592 156 622",
+];
 const surfaceLeftNotes = [
   "external relay index",
   "public contact records",
@@ -32,6 +39,12 @@ const surfaceRightStats = [
   { label: "channels", value: "01" },
   { label: "layer", value: "surface" },
   { label: "state", value: "stable" },
+];
+const depthMarkers = [
+  { label: "A1", left: "21%", top: "28%" },
+  { label: "C4", left: "74%", top: "26%" },
+  { label: "D7", left: "67%", top: "72%" },
+  { label: "H3", left: "32%", top: "66%" },
 ];
 
 export default function Operator() {
@@ -244,6 +257,23 @@ export default function Operator() {
           <div className="rift-links-depth-fog" />
           <div className="rift-links-depth-halo" />
           <div className="rift-links-depth-scan" />
+          <div className="rift-links-depth-markers">
+            {depthMarkers.map((marker) => (
+              <span
+                key={marker.label}
+                className="rift-links-depth-marker"
+                style={
+                  {
+                    left: marker.left,
+                    top: marker.top,
+                  } as CSSProperties
+                }
+              >
+                <span className="rift-links-depth-marker-cross" />
+                <span className="rift-links-depth-marker-label">{marker.label}</span>
+              </span>
+            ))}
+          </div>
 
           {depthParticles.map((particle) => (
             <span
@@ -273,6 +303,32 @@ export default function Operator() {
           <span className="rift-links-tear-rim rift-links-tear-rim--outer" />
           <span className="rift-links-tear-rim rift-links-tear-rim--inner" />
           <span className="rift-links-tear-core" />
+          <svg
+            className="rift-links-seam-svg"
+            viewBox="0 0 320 960"
+            preserveAspectRatio="none"
+          >
+            <path
+              className="rift-links-seam-path rift-links-seam-path--outer"
+              d={mainCrackPath}
+            />
+            <path
+              className="rift-links-seam-path rift-links-seam-path--noise"
+              d={mainCrackPath}
+            />
+            <path
+              className="rift-links-seam-path rift-links-seam-path--inner"
+              d={mainCrackPath}
+            />
+
+            {branchCrackPaths.map((path, index) => (
+              <path
+                key={path}
+                className={`rift-links-seam-path rift-links-seam-path--branch rift-links-seam-path--branch-${index}`}
+                d={path}
+              />
+            ))}
+          </svg>
         </div>
 
         <div
