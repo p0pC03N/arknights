@@ -132,6 +132,8 @@ const config: ArknightsConfig = {
           url: "https://xiexie-qiuligao.github.io",
           desc: "长发快乐男（本人如是说）",
           avatar: "/images/friends/xiexie_friendlink.png",
+          status: "ONLINE",
+          code: "NODE 01",
         },
       ],
     },

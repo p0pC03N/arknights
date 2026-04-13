@@ -19,6 +19,8 @@ export type FriendLink = {
   url: string;
   desc?: string;
   avatar?: string;
+  status?: string;
+  code?: string;
 };
 
 // ✅ 泰拉万象（MEDIA）文章条目
