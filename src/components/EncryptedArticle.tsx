@@ -9,31 +9,17 @@ export type EncryptedPayload = {
   ct_b64: string;
 };
 
-type UnlockStage = "locked" | "verifying" | "revealing" | "unlocked" | "bad";
+type UnlockStage = "locked" | "verifying" | "revealing" | "settling" | "unlocked" | "bad";
 type Presentation = "page" | "panel";
+type PreviewLineKind = "h1" | "h2" | "h3" | "paragraph" | "blockquote" | "code" | "list" | "blank" | "divider" | "meta";
+type PreviewLine = {
+  id: string;
+  kind: PreviewLineKind;
+  text: string;
+};
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function decodeHtmlEntities(value: string) {
-  const textarea = document.createElement("textarea");
-  textarea.innerHTML = value;
-  return textarea.value;
-}
-
-function stripHtmlTags(value: string) {
-  return decodeHtmlEntities(
-    value
-      .replace(/<style[\s\S]*?<\/style>/gi, " ")
-      .replace(/<script[\s\S]*?<\/script>/gi, " ")
-      .replace(/<(br|\/p|\/li|\/h[1-6]|\/blockquote)[^>]*>/gi, "\n")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/[ \t]+\n/g, "\n")
-      .replace(/\n{3,}/g, "\n\n")
-      .replace(/[ \t]{2,}/g, " ")
-      .trim(),
-  );
 }
 
 function wrapPlainText(value: string, width: number) {
@@ -63,6 +49,167 @@ function wrapPlainText(value: string, width: number) {
   });
 
   return lines.length > 0 ? lines : [value];
+}
+
+function wrapCodeText(value: string, width: number) {
+  const rawLines = value.replace(/\r/g, "").split("\n");
+  const lines: string[] = [];
+
+  rawLines.forEach((line, index) => {
+    if (!line.trim()) {
+      lines.push("");
+      return;
+    }
+
+    const chunks = wrapPlainText(line, width);
+    chunks.forEach((chunk) => lines.push(chunk));
+    if (index !== rawLines.length - 1 && chunks[chunks.length - 1] !== "") {
+      lines.push("");
+    }
+  });
+
+  while (lines.length > 0 && lines[lines.length - 1] === "") {
+    lines.pop();
+  }
+
+  return lines;
+}
+
+function pushBlankLine(output: PreviewLine[], counter: { value: number }) {
+  if (output.at(-1)?.kind === "blank") return;
+  output.push({ id: `line-${counter.value++}`, kind: "blank", text: "" });
+}
+
+function pushWrappedLines(
+  output: PreviewLine[],
+  counter: { value: number },
+  kind: PreviewLineKind,
+  value: string,
+  width: number,
+  prefix = "",
+  continuationPrefix = prefix,
+) {
+  const wrapped = wrapPlainText(value, Math.max(12, width - prefix.length));
+  wrapped.forEach((line, index) => {
+    output.push({
+      id: `line-${counter.value++}`,
+      kind,
+      text: `${index === 0 ? prefix : continuationPrefix}${line}`,
+    });
+  });
+}
+
+function parseHtmlToPreviewLines(html: string, width: number): PreviewLine[] {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  const output: PreviewLine[] = [];
+  const counter = { value: 0 };
+
+  function visit(node: Node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent?.trim();
+      if (text) {
+        pushWrappedLines(output, counter, "paragraph", text, width);
+        pushBlankLine(output, counter);
+      }
+      return;
+    }
+
+    if (!(node instanceof HTMLElement)) return;
+
+    const tag = node.tagName.toLowerCase();
+    const text = node.textContent?.replace(/\s+/g, " ").trim() ?? "";
+
+    switch (tag) {
+      case "h1":
+        if (text) pushWrappedLines(output, counter, "h1", text, Math.max(24, Math.floor(width * 0.72)));
+        pushBlankLine(output, counter);
+        return;
+      case "h2":
+        if (text) pushWrappedLines(output, counter, "h2", text, Math.max(22, Math.floor(width * 0.78)));
+        pushBlankLine(output, counter);
+        return;
+      case "h3":
+      case "h4":
+      case "h5":
+      case "h6":
+        if (text) pushWrappedLines(output, counter, "h3", text, Math.max(18, Math.floor(width * 0.84)));
+        pushBlankLine(output, counter);
+        return;
+      case "p":
+        if (text) pushWrappedLines(output, counter, "paragraph", text, width);
+        pushBlankLine(output, counter);
+        return;
+      case "blockquote":
+        if (text) pushWrappedLines(output, counter, "blockquote", text, width - 2, "│ ", "  ");
+        pushBlankLine(output, counter);
+        return;
+      case "pre": {
+        const codeLines = wrapCodeText(node.textContent ?? "", Math.max(16, width - 4));
+        codeLines.forEach((line) =>
+          output.push({
+            id: `line-${counter.value++}`,
+            kind: "code",
+            text: line,
+          }),
+        );
+        pushBlankLine(output, counter);
+        return;
+      }
+      case "ul": {
+        Array.from(node.children).forEach((child) => {
+          if (!(child instanceof HTMLElement) || child.tagName.toLowerCase() !== "li") return;
+          const itemText = child.textContent?.replace(/\s+/g, " ").trim() ?? "";
+          if (itemText) pushWrappedLines(output, counter, "list", itemText, width - 3, "• ", "  ");
+        });
+        pushBlankLine(output, counter);
+        return;
+      }
+      case "ol": {
+        Array.from(node.children).forEach((child, index) => {
+          if (!(child instanceof HTMLElement) || child.tagName.toLowerCase() !== "li") return;
+          const itemText = child.textContent?.replace(/\s+/g, " ").trim() ?? "";
+          if (itemText) {
+            const prefix = `${index + 1}. `;
+            pushWrappedLines(output, counter, "list", itemText, width - prefix.length, prefix, " ".repeat(prefix.length));
+          }
+        });
+        pushBlankLine(output, counter);
+        return;
+      }
+      case "hr":
+        output.push({ id: `line-${counter.value++}`, kind: "divider", text: "────────────────────────────────────────" });
+        pushBlankLine(output, counter);
+        return;
+      case "img":
+        output.push({ id: `line-${counter.value++}`, kind: "meta", text: "[ IMAGE PAYLOAD ]" });
+        pushBlankLine(output, counter);
+        return;
+      case "table":
+        output.push({ id: `line-${counter.value++}`, kind: "meta", text: "[ TABLE PAYLOAD ]" });
+        pushBlankLine(output, counter);
+        return;
+      default:
+        if (node.children.length > 0) {
+          Array.from(node.childNodes).forEach(visit);
+          return;
+        }
+
+        if (text) {
+          pushWrappedLines(output, counter, "paragraph", text, width);
+          pushBlankLine(output, counter);
+        }
+    }
+  }
+
+  Array.from(doc.body.childNodes).forEach(visit);
+
+  while (output.length > 0 && output.at(-1)?.kind === "blank") {
+    output.pop();
+  }
+
+  const emptyLine: PreviewLine = { id: "line-empty", kind: "meta", text: "[ EMPTY PAYLOAD ]" };
+  return output.length > 0 ? output : [emptyLine];
 }
 
 function scrambleLine(line: string, revealRatio: number, salt: number) {
@@ -130,11 +277,36 @@ export async function decryptEncryptedPayload(payload: EncryptedPayload, passwor
   return new TextDecoder().decode(ptBuf);
 }
 
+function previewLineClass(kind: PreviewLineKind) {
+  switch (kind) {
+    case "h1":
+      return "text-[2rem] font-benderBold tracking-[0.06em] text-white/96 leading-[1.18] mt-2";
+    case "h2":
+      return "text-[1.55rem] font-benderBold tracking-[0.06em] text-white/94 leading-[1.22] mt-2";
+    case "h3":
+      return "text-[1.22rem] font-benderBold tracking-[0.05em] text-white/92 leading-[1.28]";
+    case "blockquote":
+      return "border-l border-cyan-100/22 pl-4 italic text-white/74";
+    case "code":
+      return "rounded-[1rem] bg-[#02060b]/72 px-4 py-2 font-mono text-[0.95rem] text-[#b9f7ff]";
+    case "list":
+      return "pl-2 text-white/82";
+    case "divider":
+      return "text-cyan-100/34 tracking-[0.3em]";
+    case "meta":
+      return "text-cyan-100/58 tracking-[0.26em]";
+    case "blank":
+      return "h-[1.15rem]";
+    default:
+      return "text-white/84";
+  }
+}
+
 function ArticleViewport({
   title,
   statusLine,
   html,
-  revealing,
+  stage,
   displayLines,
   presentation,
   scrollRef,
@@ -142,11 +314,14 @@ function ArticleViewport({
   title: string;
   statusLine: string;
   html: string | null;
-  revealing: boolean;
-  displayLines: string[];
+  stage: UnlockStage;
+  displayLines: PreviewLine[];
   presentation: Presentation;
   scrollRef: MutableRefObject<HTMLDivElement | null>;
 }) {
+  const revealing = stage === "revealing" || stage === "settling";
+  const settling = stage === "settling";
+
   return (
     <div className={`relative ${presentation === "panel" ? "flex h-full flex-col" : ""}`}>
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 px-6 py-4">
@@ -168,17 +343,26 @@ function ArticleViewport({
         <div className="relative">
           <article
             className={`sealed-article-body ${presentation === "panel" ? "sealed-article-body-panel" : ""} ${
-              revealing ? "sealed-article-underlay" : "animate-[article-fade-in_.55s_ease]"
+              revealing ? `sealed-article-underlay ${settling ? "sealed-article-underlay-visible" : ""}` : "animate-[article-fade-in_.55s_ease]"
             }`}
             dangerouslySetInnerHTML={{ __html: html ?? "" }}
           />
 
           {revealing ? (
             <div className="pointer-events-none absolute inset-0 z-[2]">
-              <div className={`sealed-article-body ${presentation === "panel" ? "sealed-article-body-panel" : ""} sealed-article-scramble-shell sealed-article-scramble`}>
+              <div
+                className={`sealed-article-body ${presentation === "panel" ? "sealed-article-body-panel" : ""} sealed-article-scramble-shell sealed-article-scramble ${
+                  settling ? "sealed-article-scramble-fade" : ""
+                }`}
+              >
                 {displayLines.map((line, index) => (
-                  <div key={`${index}-${line.slice(0, 10)}`} className="sealed-article-scramble-line" style={{ animationDelay: `${index * 18}ms` }}>
-                    {line || "\u00A0"}
+                  <div
+                    key={line.id}
+                    data-decode-index={index}
+                    className={`sealed-article-scramble-line ${previewLineClass(line.kind)}`}
+                    style={{ animationDelay: `${index * 18}ms` }}
+                  >
+                    {line.text || "\u00A0"}
                   </div>
                 ))}
               </div>
@@ -214,7 +398,7 @@ function ValidationViewport({
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 px-6 py-4">
         <div>
           <div className="text-[0.72rem] font-benderBold tracking-[0.36em] text-white/42">SEALED ARCHIVE</div>
-          <div className="mt-2 text-[1.42rem] font-benderBold tracking-[0.08em] text-white">{"\u6863\u6848\u9a8c\u8bc1"}</div>
+          <div className="mt-2 text-[1.42rem] font-benderBold tracking-[0.08em] text-white">{"档案验证"}</div>
         </div>
 
         <div className="rounded-full border border-cyan-200/18 bg-cyan-200/8 px-4 py-2 text-[0.72rem] font-n15eMedium tracking-[0.34em] text-cyan-100/90">
@@ -236,7 +420,7 @@ function ValidationViewport({
               style={{ width: `${progress}%` }}
             />
           </div>
-          <div className="mt-4 text-[0.9rem] leading-7 text-white/66">{hint ?? "\u8f93\u5165\u5bc6\u7801\u540e\u5f00\u59cb\u9a8c\u8bc1\u3002"}</div>
+          <div className="mt-4 text-[0.9rem] leading-7 text-white/66">{hint ?? "输入密码后开始验证。"}</div>
         </div>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -244,7 +428,7 @@ function ValidationViewport({
             type="password"
             value={pw}
             onChange={(event) => onChange(event.target.value)}
-            placeholder="\u8f93\u5165\u5bc6\u94a5"
+            placeholder="输入密钥"
             className="h-[3.5rem] flex-1 rounded-[1.1rem] border border-white/10 bg-black/40 px-4 text-white outline-none transition-colors duration-300 focus:border-cyan-300/35"
             onKeyDown={(event) => {
               if (event.key !== "Enter") return;
@@ -284,9 +468,10 @@ export default function EncryptedArticle(props: {
   const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(false);
   const [warningSeed, setWarningSeed] = useState(0);
-  const [sourceLines, setSourceLines] = useState<string[]>([]);
-  const [displayLines, setDisplayLines] = useState<string[]>([]);
+  const [sourceLines, setSourceLines] = useState<PreviewLine[]>([]);
+  const [displayLines, setDisplayLines] = useState<PreviewLine[]>([]);
   const articleScrollRef = useRef<HTMLDivElement | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
   const glitchBlocks = useMemo(() => createGlitchBlocks(warningSeed), [warningSeed]);
   const shellClass = presentation === "panel" ? "h-full" : "mx-auto max-w-[82rem] pb-12";
@@ -294,9 +479,18 @@ export default function EncryptedArticle(props: {
     presentation === "panel"
       ? "relative flex h-full flex-col overflow-hidden rounded-[1.8rem] border border-cyan-200/12 bg-[#04070b]/94 panel-grid panel-noise glow-frame backdrop-blur-md"
       : "relative overflow-hidden rounded-[1.8rem] border border-cyan-200/12 bg-[#04070b]/94 panel-grid panel-noise glow-frame backdrop-blur-md";
-  const decodeWidth = presentation === "panel" ? 48 : 62;
-  const headerTitle = title ?? "\u5c01\u5b58\u6863\u6848";
-  const isArticleStage = stage === "revealing" || stage === "unlocked";
+  const headerTitle = title ?? "封存档案";
+  const isArticleStage = stage === "revealing" || stage === "settling" || stage === "unlocked";
+
+  function measureDecodeColumns() {
+    const fallbackWidth = presentation === "panel" ? 920 : 1080;
+    const cardWidth = cardRef.current?.clientWidth ?? fallbackWidth;
+    const usableWidth = Math.max(360, cardWidth - (presentation === "panel" ? 120 : 160));
+    const approxCharWidth = presentation === "panel" ? 9.1 : 9.6;
+    const minColumns = presentation === "panel" ? 68 : 80;
+    const maxColumns = presentation === "panel" ? 132 : 148;
+    return Math.min(maxColumns, Math.max(minColumns, Math.floor(usableWidth / approxCharWidth)));
+  }
 
   useEffect(() => {
     if (stage !== "revealing" || sourceLines.length === 0) return undefined;
@@ -304,39 +498,47 @@ export default function EncryptedArticle(props: {
     let tick = 0;
     let startTimer: number | undefined;
     let settleTimer: number | undefined;
+    let finishTimer: number | undefined;
     let intervalTimer: number | undefined;
-    const lineStagger = 2;
-    const decodeDuration = 7;
-    const totalTicks = sourceLines.length * lineStagger + decodeDuration + 12;
+    const lineStagger = 3;
+    const decodeDuration = 10;
+    const totalTicks = sourceLines.length * lineStagger + decodeDuration + 18;
 
     articleScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
 
     startTimer = window.setTimeout(() => {
       intervalTimer = window.setInterval(() => {
         tick += 1;
-        const decodeProgress = Math.min(1, tick / totalTicks);
+        const activeLineIndex = Math.min(sourceLines.length - 1, Math.max(0, Math.floor(tick / lineStagger)));
 
         setDisplayLines(
           sourceLines.map((line, index) => {
-            if (!line) return "";
+            if (line.kind === "blank" || line.kind === "divider") return line;
             const revealRatio = Math.min(1, Math.max(0, (tick - index * lineStagger) / decodeDuration));
-            return scrambleLine(line, revealRatio, tick + index * 9);
+            return { ...line, text: scrambleLine(line.text, revealRatio, tick + index * 11) };
           }),
         );
 
         window.requestAnimationFrame(() => {
           const viewport = articleScrollRef.current;
           if (!viewport) return;
+          const anchor = viewport.querySelector<HTMLElement>(`[data-decode-index="${activeLineIndex}"]`);
+          if (!anchor) return;
           const maxScroll = Math.max(0, viewport.scrollHeight - viewport.clientHeight);
-          viewport.scrollTop = maxScroll * Math.min(0.34, decodeProgress * 0.34);
+          const target = Math.min(maxScroll, Math.max(0, anchor.offsetTop - viewport.clientHeight * 0.26));
+          viewport.scrollTop += (target - viewport.scrollTop) * 0.32;
         });
 
         if (tick >= totalTicks) {
           if (intervalTimer) window.clearInterval(intervalTimer);
           settleTimer = window.setTimeout(() => {
+            setStage("settling");
+            setStatusLine("SYNCED");
+          }, 120);
+          finishTimer = window.setTimeout(() => {
             setStage("unlocked");
             setStatusLine("VERIFIED");
-          }, 160);
+          }, 420);
         }
       }, 84);
     }, 520);
@@ -345,6 +547,7 @@ export default function EncryptedArticle(props: {
       if (startTimer) window.clearTimeout(startTimer);
       if (intervalTimer) window.clearInterval(intervalTimer);
       if (settleTimer) window.clearTimeout(settleTimer);
+      if (finishTimer) window.clearTimeout(finishTimer);
     };
   }, [sourceLines, stage]);
 
@@ -353,6 +556,7 @@ export default function EncryptedArticle(props: {
     setStage("locked");
     setStatusLine("WAITING");
     setProgress(0);
+    setSourceLines([]);
     setDisplayLines([]);
     articleScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
   }
@@ -372,7 +576,7 @@ export default function EncryptedArticle(props: {
       setProgress(44);
 
       const out = await decryptEncryptedPayload(payload, password);
-      const previewLines = wrapPlainText(stripHtmlTags(out), decodeWidth);
+      const previewLines = parseHtmlToPreviewLines(out, measureDecodeColumns());
 
       setStatusLine("DECODING");
       setProgress(82);
@@ -380,7 +584,12 @@ export default function EncryptedArticle(props: {
 
       setHtml(out);
       setSourceLines(previewLines);
-      setDisplayLines(previewLines.map((line, index) => scrambleLine(line, 0, index * 7 + warningSeed)));
+      setDisplayLines(
+        previewLines.map((line, index) => ({
+          ...line,
+          text: line.kind === "blank" || line.kind === "divider" ? line.text : scrambleLine(line.text, 0, index * 7 + warningSeed),
+        })),
+      );
       setStage("revealing");
       setProgress(100);
     } catch {
@@ -398,12 +607,12 @@ export default function EncryptedArticle(props: {
 
   return (
     <section className={shellClass}>
-      <div className={cardClass}>
+      <div ref={cardRef} className={cardClass}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(255,255,255,.08),transparent_24%),radial-gradient(circle_at_76%_22%,rgba(56,189,248,.08),transparent_20%),linear-gradient(180deg,rgba(255,255,255,.02),rgba(2,6,23,.16)_30%,rgba(2,6,23,.52))]" />
 
-        {stage === "revealing" && (
+        {(stage === "revealing" || stage === "settling") && (
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute inset-y-0 left-[-18%] w-[18%] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,.34),transparent)]" style={{ animation: "decode-sweep 1.6s ease-out forwards" }} />
+            <div className="absolute inset-y-0 left-[-18%] w-[18%] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,.34),transparent)]" style={{ animation: "decode-sweep 1.9s ease-out forwards" }} />
           </div>
         )}
 
@@ -411,9 +620,9 @@ export default function EncryptedArticle(props: {
           {isArticleStage ? (
             <ArticleViewport
               title={headerTitle}
-              statusLine={stage === "revealing" ? "DECODING" : statusLine}
+              statusLine={stage === "revealing" || stage === "settling" ? "DECODING" : statusLine}
               html={html}
-              revealing={stage === "revealing"}
+              stage={stage}
               displayLines={displayLines}
               presentation={presentation}
               scrollRef={articleScrollRef}
@@ -444,7 +653,7 @@ export default function EncryptedArticle(props: {
                 <div className="space-y-1 font-n15eMedium text-[#a4001a]">
                   <div className="text-[1.15rem] tracking-[0.5em]">---⚠⚠⚠---</div>
                   <div className="text-[1.05rem] tracking-[0.42em]">---warning---</div>
-                  <div className="text-[2rem] tracking-[0.18em] portrait:text-[1.45rem]">---{"\u6863\u6848\u65e0\u6743\u67e5\u770b"}---</div>
+                  <div className="text-[2rem] tracking-[0.18em] portrait:text-[1.45rem]">---档案无权查看---</div>
                 </div>
               </div>
             </div>
