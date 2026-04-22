@@ -29,7 +29,7 @@ export default function Operator() {
       <section className="w-full h-full relative overflow-hidden bg-black">
         <iframe
           src={prototypeSrc}
-          title="Magic Friend Links Phase 1"
+          title="Tarot Friend Links"
           className="w-full h-full border-0 block"
           allow="fullscreen"
         />
@@ -37,10 +37,10 @@ export default function Operator() {
         <div className="absolute right-8 bottom-7 z-10 pointer-events-none select-none">
           <div className="px-4 py-2 border border-white/10 bg-black/45 backdrop-blur-md text-right">
             <div className="text-[0.72rem] tracking-[0.35em] text-[#f0d18c] font-bold">
-              PHASE 1
+              TAROT
             </div>
             <div className="mt-1 text-[0.75rem] text-white/72 tracking-[0.16em]">
-              Magic Link Deck Prototype
+              Friend Links Arcana
             </div>
           </div>
         </div>
