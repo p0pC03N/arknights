@@ -179,6 +179,14 @@ const config: ArknightsConfig = {
       rightImage: `${base}images/terra/right.jpg`,
       articles: [
         {
+          title: "封存档案-00",
+          subTitle: "SEALED",
+          date: "2026 // 04 / 23",
+          href: `${base}terra-omnia/secret-00`,
+          locked: true,
+          keyHint: "演示档案默认口令：0000",
+        },
+        {
           title: "封存档案-01",
           subTitle: "SEALED",
           date: "2026 // 01 / 18",
