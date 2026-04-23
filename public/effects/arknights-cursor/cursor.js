@@ -191,6 +191,10 @@
     }
 
     bindFrame(frame) {
+      if (frame.dataset.nativeCursor === "true") {
+        return;
+      }
+
       const attach = () => {
         try {
           if (!frame.contentDocument) {

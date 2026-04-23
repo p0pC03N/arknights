@@ -30,6 +30,7 @@ export default function Operator() {
         <iframe
           src={prototypeSrc}
           title="Tarot Friend Links"
+          data-native-cursor="true"
           className="w-full h-full border-0 block"
           allow="fullscreen"
         />

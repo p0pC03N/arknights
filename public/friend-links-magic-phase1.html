@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Friend Links Arcana</title>
+  <link rel="stylesheet" href="./effects/arknights-cursor/cursor.css" />
   <style>
     :root {
       color-scheme: dark;
@@ -376,19 +377,19 @@
     const BACK_IMAGE = FRIEND_LINKS_DECK_ASSETS.back;
     const STATES = Object.freeze({ LOADING: "LOADING", IDLE: "IDLE", GRABBING: "GRABBING", REVEALED: "REVEALED", DISSOLVING: "DISSOLVING" });
     const CONFIG = {
-      spacing: 4.78,
-      baseScale: 0.9,
-      hoverScale: 0.99,
-      revealScale: 1.24,
+      spacing: 5.72,
+      baseScale: 1.04,
+      hoverScale: 1.13,
+      revealScale: 1.36,
       revealDistance: 8.5,
       cursorDistance: 20,
       grabCursorDistance: 16,
       pullThreshold: 0.08,
-      wheelScrollFactor: 0.0084,
-      dragScrollFactor: 0.03,
-      scrollSpring: 0.124,
-      scrollDamping: 0.86,
-      scrollMaxSpeed: 3.1,
+      wheelScrollFactor: 0.0115,
+      dragScrollFactor: 0.042,
+      scrollSpring: 0.138,
+      scrollDamping: 0.88,
+      scrollMaxSpeed: 4.4,
       floatY: 0.11,
       floatZ: 0.06,
       swayZ: 0.024,
@@ -1009,5 +1010,6 @@
 
     initScene();
   </script>
+  <script src="./effects/arknights-cursor/cursor.js" defer></script>
 </body>
 </html>
