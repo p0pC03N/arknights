@@ -347,7 +347,8 @@
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js";
 
-    const PLACEHOLDER_POOL = [
+    const CARD_COUNT = 21;
+    const CARD_ART_POOL = [
       { image: FRIEND_LINKS_DECK_ASSETS.lovers, accent: "#d7c0ff" },
       { image: FRIEND_LINKS_DECK_ASSETS.star, accent: "#ffe09d" },
       { image: FRIEND_LINKS_DECK_ASSETS.moon, accent: "#b5c7ff" },
@@ -357,22 +358,18 @@
       { image: FRIEND_LINKS_DECK_ASSETS.magician, accent: "#ffc7df" },
       { image: FRIEND_LINKS_DECK_ASSETS.fool, accent: "#f6d8a9" },
     ];
-    const PLACEHOLDER_STATES = ["SEALED", "DORMANT", "PENDING", "VEILED"];
-    const LINKS = [
+    const FRIEND_POOL = [
       { id: "xiexie", name: "xiexie", status: "ONLINE", url: "https://xiexie-qiuligao.github.io", image: FRIEND_LINKS_DECK_ASSETS.world, accent: "#ffc7df" },
-      ...Array.from({ length: 20 }, (_, index) => {
-        const card = PLACEHOLDER_POOL[index % PLACEHOLDER_POOL.length];
-        const order = String(index + 2).padStart(2, "0");
-        return {
-          id: `slot-${order}`,
-          name: `No.${order}`,
-          status: PLACEHOLDER_STATES[index % PLACEHOLDER_STATES.length],
-          url: "",
-          image: card.image,
-          accent: card.accent,
-        };
-      }),
+      { id: "qvq", name: "QVQ", status: "ONLINE", url: "https://rzq66.github.io/QMQ.github.io/", image: FRIEND_LINKS_DECK_ASSETS.lovers, accent: "#d7c0ff" },
+      { id: "wujiyan", name: "无机盐", status: "ONLINE", url: "http://8.210.123.186/", image: FRIEND_LINKS_DECK_ASSETS.star, accent: "#ffe09d" },
+      { id: "linye", name: "linye", status: "ONLINE", url: "https://linye9999.github.io", image: FRIEND_LINKS_DECK_ASSETS.moon, accent: "#b5c7ff" },
+      { id: "byte", name: "byte", status: "ONLINE", url: "https://www.0xbyt3.com", image: FRIEND_LINKS_DECK_ASSETS.sun, accent: "#f7d18d" },
+      { id: "converter258", name: "converter258", status: "ONLINE", url: "https://converter258.cn", image: FRIEND_LINKS_DECK_ASSETS.wheel, accent: "#c0f1d8" },
     ];
+    const CARD_VISUALS = Array.from({ length: CARD_COUNT }, (_, index) => ({
+      id: `card-${String(index + 1).padStart(2, "0")}`,
+      ...CARD_ART_POOL[index % CARD_ART_POOL.length],
+    }));
 
     const BACK_IMAGE = FRIEND_LINKS_DECK_ASSETS.back;
     const STATES = Object.freeze({ LOADING: "LOADING", IDLE: "IDLE", GRABBING: "GRABBING", REVEALED: "REVEALED", DISSOLVING: "DISSOLVING" });
@@ -438,6 +435,8 @@
     let dragStartX = 0;
     let dragStartScroll = 0;
     let isDraggingDeck = false;
+    let drawQueue = [];
+    let lastDrawId = null;
 
     const mouse = new THREE.Vector2(0, 0);
     const targetMouse = new THREE.Vector2(0, 0);
@@ -468,6 +467,31 @@
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, 64, 64);
       return new THREE.CanvasTexture(canvas);
+    }
+
+    function shuffle(array) {
+      const copy = array.slice();
+      for (let index = copy.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
+      }
+      return copy;
+    }
+
+    function refillDrawQueue() {
+      drawQueue = shuffle(FRIEND_POOL);
+      if (drawQueue.length > 1 && lastDrawId && drawQueue[0].id === lastDrawId) {
+        [drawQueue[0], drawQueue[1]] = [drawQueue[1], drawQueue[0]];
+      }
+    }
+
+    function assignLinkToCard(card) {
+      if (card.userData.assignedLink) return card.userData.assignedLink;
+      if (drawQueue.length === 0) refillDrawQueue();
+      const link = drawQueue.shift();
+      card.userData.assignedLink = link;
+      lastDrawId = link.id;
+      return link;
     }
 
     function textureFromSource(src) {
@@ -521,7 +545,7 @@
     }
 
     function updateDeckScrollBounds() {
-      const totalWidth = (LINKS.length - 1) * CONFIG.spacing + 3.2;
+      const totalWidth = (CARD_COUNT - 1) * CONFIG.spacing + 3.2;
       const viewHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * camera.position.z;
       const viewWidth = viewHeight * camera.aspect;
       deckMaxScroll = Math.max(0, (totalWidth - viewWidth * 0.76) * 0.5);
@@ -536,10 +560,10 @@
       deckScrollVelocity = THREE.MathUtils.clamp(deckScrollVelocity + delta * 0.18, -CONFIG.scrollMaxSpeed, CONFIG.scrollMaxSpeed);
     }
 
-    function buildCard(link, index, total) {
-      const frontTexture = textureFromSource(link.image);
+    function buildCard(cardVisual, index, total) {
+      const frontTexture = textureFromSource(cardVisual.image);
       const backTexture = textureFromSource(BACK_IMAGE);
-      const accent = new THREE.Color(link.accent);
+      const accent = new THREE.Color(cardVisual.accent);
       const edgeMaterial = new THREE.MeshStandardMaterial({
         color: 0x18121d,
         emissive: accent.clone().multiplyScalar(0.12),
@@ -573,7 +597,8 @@
       mesh.rotation.z = ((index % 3) - 1) * 0.028;
       mesh.scale.setScalar(CONFIG.baseScale);
       mesh.userData = {
-        link,
+        cardId: cardVisual.id,
+        assignedLink: null,
         basePos: mesh.position.clone(),
         baseRotZ: mesh.rotation.z,
         floatPhase: index * 0.43,
@@ -610,7 +635,7 @@
 
       deckGroup = new THREE.Group();
       scene.add(deckGroup);
-      LINKS.forEach((link, index) => buildCard(link, index, LINKS.length));
+      CARD_VISUALS.forEach((cardVisual, index) => buildCard(cardVisual, index, CARD_VISUALS.length));
       updateDeckScrollBounds();
 
       handCursor = new THREE.Mesh(
@@ -642,19 +667,34 @@
     }
 
     function revealCard(card) {
+      const link = assignLinkToCard(card);
       currentCard = card;
       grabbedCard = null;
       setState(STATES.REVEALED);
-      ui.nameplateTitle.textContent = card.userData.link.name;
-      ui.nameplateState.textContent = card.userData.link.url ? "click again to enter" : card.userData.link.status;
+      ui.nameplateTitle.textContent = link.name;
+      ui.nameplateState.textContent = "click again to enter";
       ui.nameplate.classList.add("is-visible");
-      setWhisper("veil parted", card.userData.link.url ? "One more touch, and the gate opens." : "This seat is still unnamed.");
+      setWhisper("veil parted", "One more touch, and the gate opens.");
     }
 
     function returnToDeck() {
       if (appState === STATES.DISSOLVING) return;
+      if (currentCard) currentCard.userData.assignedLink = null;
       currentCard = null;
       grabbedCard = null;
+      ui.nameplate.classList.remove("is-visible");
+      setState(STATES.IDLE);
+      setWhisper("quiet signal", "Drag the void, or wheel across the spread.");
+    }
+
+    function resetAfterOpen() {
+      if (currentCard) {
+        currentCard.visible = true;
+        currentCard.userData.assignedLink = null;
+      }
+      currentCard = null;
+      grabbedCard = null;
+      pendingWindow = null;
       ui.nameplate.classList.remove("is-visible");
       setState(STATES.IDLE);
       setWhisper("quiet signal", "Drag the void, or wheel across the spread.");
@@ -699,15 +739,25 @@
 
     function openCurrentCard() {
       if (!currentCard || appState === STATES.DISSOLVING) return;
-      if (!currentCard.userData.link.url) {
-        setWhisper("seal remains", "No true name has been written here yet.");
+      const link = currentCard.userData.assignedLink;
+      if (!link?.url) {
+        setWhisper("seal remains", "The path failed to answer.");
         return;
       }
 
       try {
-        pendingWindow = window.open("about:blank", "_blank", "noopener");
+        pendingWindow = window.open("", "_blank");
+        if (pendingWindow && !pendingWindow.closed) {
+          pendingWindow.document.write(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Opening ${link.name}</title><style>html,body{height:100%;margin:0;background:#05040a;color:#f4d59a;font-family:Georgia,serif;display:grid;place-items:center;letter-spacing:.18em;text-transform:uppercase}body{background:radial-gradient(circle at center, rgba(244,213,154,.08), transparent 28%), linear-gradient(180deg, #0a0712, #020204 80%);}div{text-align:center}small{display:block;margin-top:1rem;color:rgba(245,241,235,.66);font-size:.72rem;letter-spacing:.3em}</style></head><body><div>Gate Opening<small>${link.name}</small></div></body></html>`);
+          pendingWindow.document.close();
+        }
       } catch {
         pendingWindow = null;
+      }
+
+      if (!pendingWindow || pendingWindow.closed) {
+        setWhisper("gate denied", "The browser refused to open a new window.");
+        return;
       }
 
       setState(STATES.DISSOLVING);
@@ -716,11 +766,12 @@
       currentCard.visible = false;
 
       setTimeout(() => {
-        const url = currentCard.userData.link.url;
-        if (pendingWindow && !pendingWindow.closed) pendingWindow.location.href = url;
-        else if (window.top && window.top !== window) window.top.location.href = url;
-        else window.location.href = url;
+        if (pendingWindow && !pendingWindow.closed) pendingWindow.location.replace(link.url);
       }, 760);
+
+      setTimeout(() => {
+        if (appState === STATES.DISSOLVING) resetAfterOpen();
+      }, 980);
     }
 
     function updateMouse(event) {

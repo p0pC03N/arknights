@@ -13,6 +13,7 @@ import { directions } from "../../components/store/lineDecoratorStore.ts"
 import { viewIndex, readyToTouch } from "../../components/store/rootLayoutStore.ts"
 
 const base = import.meta.env.BASE_URL
+type BreakingNewsGroup = { name: string, list: BreakingNewsItemProps[] }
 
 function BreakingNewsTag({ label, active, onClick }: {
     label: string,
@@ -72,16 +73,52 @@ function BreakingNewsItem({ category, title, date, href }: BreakingNewsItemProps
     )
 }
 
+function BreakingNewsListShell({
+    items,
+    moreHref,
+    moreText,
+}: {
+    items: BreakingNewsItemProps[],
+    moreHref: string,
+    moreText: string,
+}) {
+    return (
+        <div className="mt-2 portrait:mt-0 flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 overflow-y-auto pr-3 portrait:pr-0 portrait:overflow-visible">
+                {
+                    items.length > 0
+                        ? items.map((item: BreakingNewsItemProps, index: number) =>
+                            <BreakingNewsItem key={index} {...item} />)
+                        : <div className="text-4xl font-benderBold p-8">NO DATA</div>
+                }
+            </div>
+
+            <a
+                target="_blank"
+                href={moreHref}
+                className={"w-[9.5rem] portrait:w-[11.125rem]"
+                    + " h-[1.5rem] portrait:h-[1.75rem] text-[.875rem] portrait:text-[1.3125rem] text-[#d2d2d2]"
+                    + " hover:text-black font-benderBold whitespace-nowrap bg-[#585858] hover:bg-white"
+                    + " px-[.625rem] portrait:px-3 mt-6 portrait:mt-10 flex items-center cursor-pointer"
+                    + " transition-colors duration-300 shrink-0"}
+            >
+                <span>{moreText}</span>
+                <IconArrow className={"w-[.4375rem] ml-auto flex-none"} />
+            </a>
+        </div>
+    )
+}
+
 function BreakingNewsList() {
     const [category, setCategory] = useState([] as string[])
-    const [data, setData] = useState([] as { name: string, list: BreakingNewsItemProps[] }[])
+    const [data, setData] = useState([] as BreakingNewsGroup[])
     const [categoryIndex, setCategoryIndex] = useState(0)
 
     useEffect(() => {
         fetch(base + "blog/breaking-news.json")
             .then(response => response.json())
             .then(data => {
-                setCategory(data.map((item: { name: string, list: BreakingNewsItemProps[] }) => item.name))
+                setCategory(data.map((item: BreakingNewsGroup) => item.name))
                 setData(data)
             })
     }, []);
@@ -103,27 +140,11 @@ function BreakingNewsList() {
             ))}
         </div>
 
-        <div className={"mt-2 portrait:mt-0"}>
-            {
-                data.length > 0 && data[categoryIndex]?.list.length > 0
-                    ? data[categoryIndex].list.map((item: BreakingNewsItemProps, index: number) =>
-                        <BreakingNewsItem key={index} {...item} />)
-                    : <div className="text-4xl font-benderBold p-8">NO DATA</div>
-            }
-
-            <a
-                target="_blank"
-                href={moreHref}
-                className={"w-[9.5rem] portrait:w-[11.125rem]"
-                    + " h-[1.5rem] portrait:h-[1.75rem] text-[.875rem] portrait:text-[1.3125rem] text-[#d2d2d2]"
-                    + " hover:text-black font-benderBold whitespace-nowrap bg-[#585858] hover:bg-white"
-                    + " px-[.625rem] portrait:px-3 mt-8 portrait:mt-10 flex items-center cursor-pointer"
-                    + " transition-colors duration-300"}
-            >
-                <span>{moreText}</span>
-                <IconArrow className={"w-[.4375rem] ml-auto flex-none"} />
-            </a>
-        </div>
+        <BreakingNewsListShell
+            items={data[categoryIndex]?.list ?? []}
+            moreHref={moreHref}
+            moreText={moreText}
+        />
     </>
 }
 
@@ -308,7 +329,7 @@ export default function Information() {
 }
 
 function DynamicSectionTitle() {
-    const [data, setData] = useState([] as { name: string, list: BreakingNewsItemProps[] }[])
+    const [data, setData] = useState([] as BreakingNewsGroup[])
     const [categoryIndex, setCategoryIndex] = useState(0)
 
     useEffect(() => {
@@ -336,14 +357,14 @@ function DynamicSectionTitle() {
 
 function BreakingNewsWithTitle() {
     const [category, setCategory] = useState([] as string[])
-    const [data, setData] = useState([] as { name: string, list: BreakingNewsItemProps[] }[])
+    const [data, setData] = useState([] as BreakingNewsGroup[])
     const [categoryIndex, setCategoryIndex] = useState(0)
 
     useEffect(() => {
         fetch(base + "blog/breaking-news.json")
             .then(response => response.json())
             .then(data => {
-                setCategory(data.map((item: { name: string, list: BreakingNewsItemProps[] }) => item.name))
+                setCategory(data.map((item: BreakingNewsGroup) => item.name))
                 setData(data)
             })
     }, [])
@@ -356,7 +377,7 @@ function BreakingNewsWithTitle() {
     const moreHref = currentName === "文档" ? base + "docs/" : base + "blog/"
     const moreText = currentName === "文档" ? "VIEW DOCS" : "VIEW BLOG"
 
-    return <>
+    return <div className="flex h-[22rem] portrait:h-[unset] flex-col">
         <div className={"flex portrait:mt-8 portrait:pt-8 portrait:pb-8 portrait:border-y"
             + " portrait:border-solid portrait:border-t-[#565656] portrait:border-b-[#403c3b]"}>
             {category.map((label, index) => (
@@ -369,26 +390,10 @@ function BreakingNewsWithTitle() {
             ))}
         </div>
 
-        <div className={"mt-2 portrait:mt-0"}>
-            {
-                data.length > 0 && data[categoryIndex]?.list.length > 0
-                    ? data[categoryIndex].list.map((item: BreakingNewsItemProps, index: number) =>
-                        <BreakingNewsItem key={index} {...item} />)
-                    : <div className="text-4xl font-benderBold p-8">NO DATA</div>
-            }
-
-            <a
-                target="_blank"
-                href={moreHref}
-                className={"w-[9.5rem] portrait:w-[11.125rem]"
-                    + " h-[1.5rem] portrait:h-[1.75rem] text-[.875rem] portrait:text-[1.3125rem] text-[#d2d2d2]"
-                    + " hover:text-black font-benderBold whitespace-nowrap bg-[#585858] hover:bg-white"
-                    + " px-[.625rem] portrait:px-3 mt-8 portrait:mt-10 flex items-center cursor-pointer"
-                    + " transition-colors duration-300"}
-            >
-                <span>{moreText}</span>
-                <IconArrow className={"w-[.4375rem] ml-auto flex-none"} />
-            </a>
-        </div>
-    </>
+        <BreakingNewsListShell
+            items={data[categoryIndex]?.list ?? []}
+            moreHref={moreHref}
+            moreText={moreText}
+        />
+    </div>
 }

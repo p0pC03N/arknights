@@ -9,6 +9,8 @@ import {
     sortDocEntries,
 } from "../../content/utils";
 
+const HOMEPAGE_LIST_LIMIT = 5;
+
 export async function GET({}: APIContext) {
     const allDocs = sortDocEntries(filterPublishedEntries(await getCollection("docs")));
     const allBlog = sortBlogEntries(filterPublishedEntries(await getCollection("blog")));
@@ -19,7 +21,8 @@ export async function GET({}: APIContext) {
             date: getEntryDisplayDate(item),
             href: getEntryUrl(item),
             category: "DOCS",
-        })) as BreakingNewsItemProps[];
+        }))
+        .slice(0, HOMEPAGE_LIST_LIMIT) as BreakingNewsItemProps[];
 
     const blogList = allBlog
         .map((item) => ({
@@ -27,7 +30,8 @@ export async function GET({}: APIContext) {
             date: getEntryDisplayDate(item, item.id.substring(0, 10)),
             href: getEntryUrl(item),
             category: "BLOG",
-        })) as BreakingNewsItemProps[];
+        }))
+        .slice(0, HOMEPAGE_LIST_LIMIT) as BreakingNewsItemProps[];
 
     return new Response(
         JSON.stringify([
