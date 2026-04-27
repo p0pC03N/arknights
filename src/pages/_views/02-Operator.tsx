@@ -3,7 +3,7 @@ import { useStore } from "@nanostores/react";
 import { viewIndex, readyToTouch } from "../../components/store/rootLayoutStore";
 import { directions } from "../../components/store/lineDecoratorStore";
 
-const prototypeSrc = `${import.meta.env.BASE_URL}friend-links-magic-phase1.html`;
+const prototypeSrc = `${import.meta.env.BASE_URL}friend-links-magic-phase1.html?v=20260427-1`;
 
 export default function Operator() {
   const $viewIndex = useStore(viewIndex);
