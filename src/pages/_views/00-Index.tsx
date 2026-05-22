@@ -409,9 +409,9 @@ export default function Index() {
 
   return (
     <div className="absolute inset-0 z-[2] h-full w-[100vw] max-w-[180rem] overflow-y-auto overflow-x-hidden bg-[#08090d] text-white transition-opacity duration-100" data-root-scroll-lock="true">
-      <div className="fixed inset-0 bg-[linear-gradient(180deg,#081016,#101011_48%,#040406)]" />
-      <div className="fixed inset-0 opacity-[0.18] [background-image:linear-gradient(#28f7ff_1px,transparent_1px),linear-gradient(90deg,#28f7ff_1px,transparent_1px)] [background-size:28px_28px]" />
-      <div className="fixed inset-0 pointer-events-none bg-[repeating-linear-gradient(0deg,rgba(255,255,255,.06)_0,rgba(255,255,255,.06)_1px,transparent_1px,transparent_4px)] opacity-30" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,#081016,#101011_48%,#040406)]" />
+      <div className="absolute inset-0 opacity-[0.18] [background-image:linear-gradient(#28f7ff_1px,transparent_1px),linear-gradient(90deg,#28f7ff_1px,transparent_1px)] [background-size:28px_28px]" />
+      <div className="absolute inset-0 pointer-events-none bg-[repeating-linear-gradient(0deg,rgba(255,255,255,.06)_0,rgba(255,255,255,.06)_1px,transparent_1px,transparent_4px)] opacity-30" />
 
       <div className={`relative z-[2] mx-auto min-h-full max-w-[102rem] px-5 pb-16 pt-[7.5rem] transition-all duration-500 portrait:px-3 portrait:pt-[8.5rem] ${active ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
         <div className="mb-5 flex items-end justify-between gap-4 portrait:block">
