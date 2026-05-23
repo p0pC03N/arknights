@@ -273,18 +273,24 @@ function MessageBoard() {
 }
 
 function HeroCover() {
+  const openCatHome = () => {
+    location.hash = "more";
+    viewIndex.set(5);
+  };
+
   return (
     <PixelPanel className="aspect-[1672/941] overflow-hidden bg-black">
+      <button type="button" onClick={openCatHome} className="absolute inset-0 z-[2] cursor-pointer" aria-label="打开小猫主页" />
       <img
         src={`${base}images/home/cat-crayon-pixel-cover.webp`}
         alt="像素涂鸦猫咪封面"
         className="h-full w-full object-cover [image-rendering:pixelated]"
       />
       <div className="absolute inset-0 border-[10px] border-black/35" />
-      <div className="absolute bottom-4 left-4 border-2 border-black bg-[#ffee22] px-4 py-2 font-benderBold text-xl text-black shadow-[5px_5px_0_#000]">
-        CORN KINGDOM
+      <div className="pointer-events-none absolute bottom-4 left-4 z-[3] border-2 border-black bg-[#ffee22] px-4 py-2 font-benderBold text-xl text-black shadow-[5px_5px_0_#000]">
+        CAT HOME
       </div>
-      <div className="absolute right-[5.8%] top-[15%] w-[22%] min-w-[8rem] rotate-[1deg] border-4 border-black bg-white p-2 shadow-[6px_6px_0_#000] portrait:right-4 portrait:top-4 portrait:w-[9rem]">
+      <div className="pointer-events-none absolute right-[5.8%] top-[15%] z-[3] w-[22%] min-w-[8rem] rotate-[1deg] border-4 border-black bg-white p-2 shadow-[6px_6px_0_#000] portrait:right-4 portrait:top-4 portrait:w-[9rem]">
         <img
           src={`${base}images/home/alipay-qr.jpg`}
           alt="支付宝收款码"

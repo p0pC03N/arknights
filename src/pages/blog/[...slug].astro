@@ -4,6 +4,7 @@ import {getCollection} from "astro:content";
 import InfoLayout from "../../layouts/InfoLayout.astro";
 import GoBackTool from "../../components/GoBackTool";
 import { filterPublishedEntries, sortBlogEntries } from "../../content/utils";
+import ArticleCatReward from "../../components/cat/ArticleCatReward";
 
 export async function getStaticPaths() {
     const allBlog = sortBlogEntries(filterPublishedEntries(await getCollection("blog")));
@@ -24,6 +25,7 @@ const tabTitle = entry?.data?.title ?? "无标题"
     <article class="max-w-[80.75rem] mx-auto">
         <Content/>
     </article>
+    <ArticleCatReward client:load articleId={`blog:${entry.slug}`} />
     <!--<Debug {entry} />-->
 
     <GoBackTool slot="tool-panel" client:load {...{goBackHref}}/>
