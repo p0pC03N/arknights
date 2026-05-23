@@ -1,11 +1,17 @@
-import { useEffect, useState } from "react";
-import type { FormEvent, ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useStore } from "@nanostores/react";
 import { directions } from "../../components/store/lineDecoratorStore";
 import { readyToTouch, viewIndex } from "../../components/store/rootLayoutStore.ts";
 
 const base = import.meta.env.BASE_URL;
-const MESSAGE_STORAGE_KEY = "corn-kingdom-home-messages";
+
+const giscusConfig = {
+  repo: "p0pC03N/arknights",
+  repoId: "R_kgDOQxpzQQ",
+  category: "General",
+  categoryId: "DIC_kwDOQxpzQc4C9pZc",
+};
 
 type FeedItem = {
   title: string;
@@ -18,28 +24,6 @@ type HomeFeed = {
   docs: FeedItem[];
   blog: FeedItem[];
 };
-
-type BoardMessage = {
-  id: string;
-  name: string;
-  text: string;
-  time: string;
-};
-
-const defaultMessages: BoardMessage[] = [
-  {
-    id: "default-1",
-    name: "SYSTEM",
-    text: "留言板已上线，本地先帮你存着。",
-    time: "INIT",
-  },
-  {
-    id: "default-2",
-    name: "CAT",
-    text: "投喂记录 +1",
-    time: "MEOW",
-  },
-];
 
 type CupSide = "yang" | "yin";
 
@@ -236,76 +220,54 @@ function FortunePanel() {
 }
 
 function MessageBoard() {
-  const [messages, setMessages] = useState<BoardMessage[]>(defaultMessages);
-  const [name, setName] = useState("");
-  const [text, setText] = useState("");
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const isConfigured = Boolean(giscusConfig.categoryId);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(MESSAGE_STORAGE_KEY);
-    if (!stored) return;
+    const container = containerRef.current;
+    if (!container || !isConfigured) return;
 
-    try {
-      const parsed = JSON.parse(stored) as BoardMessage[];
-      if (Array.isArray(parsed)) setMessages(parsed);
-    } catch {
-      setMessages(defaultMessages);
-    }
-  }, []);
+    container.innerHTML = "";
 
-  useEffect(() => {
-    window.localStorage.setItem(MESSAGE_STORAGE_KEY, JSON.stringify(messages));
-  }, [messages]);
+    const script = document.createElement("script");
+    script.src = "https://giscus.app/client.js";
+    script.async = true;
+    script.crossOrigin = "anonymous";
+    script.setAttribute("data-repo", giscusConfig.repo);
+    script.setAttribute("data-repo-id", giscusConfig.repoId);
+    script.setAttribute("data-category", giscusConfig.category);
+    script.setAttribute("data-category-id", giscusConfig.categoryId);
+    script.setAttribute("data-mapping", "pathname");
+    script.setAttribute("data-strict", "0");
+    script.setAttribute("data-reactions-enabled", "1");
+    script.setAttribute("data-emit-metadata", "0");
+    script.setAttribute("data-input-position", "bottom");
+    script.setAttribute("data-theme", "preferred_color_scheme");
+    script.setAttribute("data-lang", "zh-CN");
+    script.setAttribute("data-loading", "lazy");
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const nextText = text.trim();
-    if (!nextText) return;
+    container.appendChild(script);
 
-    const now = new Date();
-    const next: BoardMessage = {
-      id: `${now.getTime()}`,
-      name: name.trim() || "ANON",
-      text: nextText,
-      time: `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+    return () => {
+      container.innerHTML = "";
     };
-
-    setMessages((current) => [next, ...current].slice(0, 6));
-    setText("");
-  };
+  }, [isConfigured]);
 
   return (
-    <PixelPanel className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#fff4c0]">
-      <PanelHeader title="MESSAGE BOARD" label="LOCAL" accent="bg-[#84cc16]" />
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
-        {messages.map((message) => (
-          <article key={message.id} className="border-2 border-black bg-white p-2 shadow-[3px_3px_0_#000]">
-            <div className="flex items-center gap-2 font-benderBold text-xs">
-              <span className="bg-black px-2 py-1 text-[#ffee22]">{message.name}</span>
-              <span className="ml-auto text-[#555]">{message.time}</span>
-            </div>
-            <p className="mt-2 break-words text-sm font-bold leading-5">{message.text}</p>
-          </article>
-        ))}
+    <PixelPanel className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#071014] text-white">
+      <PanelHeader title="MESSAGE BOARD" label="GISCUS" accent="bg-[#84cc16]" />
+      <div className="min-h-[22rem] flex-1 overflow-y-auto p-3">
+        {isConfigured ? (
+          <div ref={containerRef} className="giscus-shell min-h-[18rem]" />
+        ) : (
+          <div className="border-2 border-[#84cc16] bg-[#84cc161f] p-4 font-bold leading-6 text-[#eaffd4] shadow-[4px_4px_0_#000]">
+            <div className="font-benderBold text-xl text-[#ffee22]">留言板已上线</div>
+            <p className="mt-3 text-sm">
+              GitHub Discussions 尚未启用。启用 Discussions、安装 giscus，并填入 categoryId 后，这里会显示真实留言。
+            </p>
+          </div>
+        )}
       </div>
-      <form onSubmit={handleSubmit} className="grid grid-cols-[5rem_1fr_4rem] gap-2 border-t-2 border-black bg-[#ff4f8b] p-2 portrait:grid-cols-1">
-        <input
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          maxLength={10}
-          placeholder="NAME"
-          className="min-w-0 border-2 border-black bg-white px-2 py-2 font-benderBold text-xs outline-none"
-        />
-        <input
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          maxLength={48}
-          placeholder="说点什么..."
-          className="min-w-0 border-2 border-black bg-white px-2 py-2 text-sm font-bold outline-none"
-        />
-        <button className="border-2 border-black bg-[#ffee22] px-2 py-2 font-benderBold text-xs shadow-[3px_3px_0_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">
-          SEND
-        </button>
-      </form>
     </PixelPanel>
   );
 }
