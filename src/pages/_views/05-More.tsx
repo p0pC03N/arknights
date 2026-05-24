@@ -37,11 +37,11 @@ const wardrobeTabLabels: Record<WardrobeItem["slot"], string> = {
 };
 
 const wardrobeItems: WardrobeItem[] = [
-  { id: "coat:tabbyWhite", label: "狸花白胸", icon: "/images/cat/item-tabby-white.png", slot: "coat", value: "tabbyWhite", rarity: "普通" },
-  { id: "coat:whitePaws", label: "四脚踏雪", icon: "/images/cat/item-white-paws.png", slot: "coat", value: "whitePaws", rarity: "普通" },
-  { id: "coat:orange", label: "橘色能量", icon: "/images/cat/item-orange-fur.png", slot: "coat", value: "orange", rarity: "史诗", price: { kind: "cans", amount: 3 } },
-  { id: "coat:black", label: "夜巡黑猫", icon: "/images/cat/item-black-fur.png", slot: "coat", value: "black", rarity: "史诗", price: { kind: "driedFish", amount: 2 } },
-  { id: "coat:calico", label: "三花幸运", icon: "/images/cat/cat-coat-calico.png", slot: "coat", value: "calico", rarity: "传说", price: { kind: "driedFish", amount: 4 } },
+  { id: "coat:tabbyWhite", label: "狸花白胸", icon: "/images/cat/cat-card-tabby-white.png", slot: "coat", value: "tabbyWhite", rarity: "普通" },
+  { id: "coat:whitePaws", label: "四脚踏雪", icon: "/images/cat/cat-card-white-paws.png", slot: "coat", value: "whitePaws", rarity: "普通" },
+  { id: "coat:orange", label: "橘色能量", icon: "/images/cat/cat-card-orange.png", slot: "coat", value: "orange", rarity: "史诗", price: { kind: "cans", amount: 3 } },
+  { id: "coat:black", label: "夜巡黑猫", icon: "/images/cat/cat-card-black.png", slot: "coat", value: "black", rarity: "史诗", price: { kind: "driedFish", amount: 2 } },
+  { id: "coat:calico", label: "三花幸运", icon: "/images/cat/cat-card-calico.png", slot: "coat", value: "calico", rarity: "传说", price: { kind: "driedFish", amount: 4 } },
   { id: "collar:bell", label: "小铃铛", icon: "/images/cat/item-bell-collar.png", slot: "collar", value: "bell", rarity: "普通" },
   { id: "clothes:blueScarf", label: "蓝围巾", icon: "/images/cat/item-blue-scarf.png", slot: "clothes", value: "blueScarf", rarity: "普通" },
   { id: "head:tinyHat", label: "草帽", icon: "/images/cat/item-straw-hat.png", slot: "head", value: "tinyHat", rarity: "史诗", price: { kind: "cans", amount: 4 } },
@@ -57,7 +57,7 @@ function resourceName(kind: "cans" | "driedFish") {
 
 function clampName(name: string) {
   const value = name.trim();
-  return value ? value.slice(0, 10) : "玉米";
+  return value ? value.slice(0, 10) : "米线";
 }
 
 function isItemEquipped(profile: CatProfile, item: WardrobeItem) {
@@ -96,6 +96,54 @@ function buyOrEquip(profile: CatProfile, item: WardrobeItem): { profile: CatProf
   return { profile: next, message: owned ? `已换上 ${item.label}` : `解锁并换上 ${item.label}` };
 }
 
+type OwnerCodeReward = {
+  label: string;
+  items?: string[];
+  cans?: number;
+  driedFish?: number;
+};
+
+const ownerCodes: Record<string, OwnerCodeReward> = {
+  "MIXIAN-ALL": {
+    label: "站长全解锁口令",
+    items: wardrobeItems.map((item) => item.id),
+    cans: 9,
+    driedFish: 9,
+  },
+  "MIXIAN-FASHION": {
+    label: "装扮解锁口令",
+    items: wardrobeItems.filter((item) => item.slot !== "tail").map((item) => item.id),
+  },
+  "MIXIAN-SNACK": {
+    label: "补给口令",
+    cans: 6,
+    driedFish: 6,
+  },
+};
+
+function normalizeCode(value: string) {
+  return value.trim().toUpperCase().replace(/\s+/g, "-");
+}
+
+function redeemOwnerCode(profile: CatProfile, rawCode: string): { profile: CatProfile; message: string; ok: boolean } {
+  const code = normalizeCode(rawCode);
+  const reward = ownerCodes[code as keyof typeof ownerCodes];
+
+  if (!reward) return { profile, message: "口令无效。", ok: false };
+  if (profile.redeemedCodes.includes(code)) return { profile, message: "这个口令已经用过了。", ok: false };
+
+  const next: CatProfile = {
+    ...profile,
+    cans: profile.cans + (reward.cans ?? 0),
+    driedFish: profile.driedFish + (reward.driedFish ?? 0),
+    ownedItems: Array.from(new Set([...profile.ownedItems, ...(reward.items ?? [])])),
+    redeemedCodes: [...profile.redeemedCodes, code],
+  };
+
+  saveCatProfile(next);
+  return { profile: next, message: `${reward.label}生效，米线的仓库已更新。`, ok: true };
+}
+
 function Meter({ label, value, color }: { label: string; value: number; color: string }) {
   return (
     <div className="border-2 border-black bg-white p-2 shadow-[3px_3px_0_#000]">
@@ -117,6 +165,7 @@ export default function More() {
   const [profile, setProfile] = useState<CatProfile>(() => loadCatProfile());
   const [draftName, setDraftName] = useState(profile.name);
   const [tab, setTab] = useState<WardrobeItem["slot"]>("coat");
+  const [redeemCode, setRedeemCode] = useState("");
   const [message, setMessage] = useState("点击小猫可以抚摸，读文章会带回罐头。");
   const [mood, setMood] = useState<"idle" | "happy" | "hungry">("idle");
 
@@ -174,6 +223,13 @@ export default function More() {
     setMessage(result.message);
   };
 
+  const handleRedeemCode = () => {
+    const result = redeemOwnerCode(profile, redeemCode);
+    setProfile(result.profile);
+    setMessage(result.message);
+    if (result.ok) setRedeemCode("");
+  };
+
   return (
     <div className={`absolute inset-0 overflow-y-auto bg-[#f7edcf] text-black transition-opacity duration-700 ${active ? "opacity-100" : "opacity-0"}`} data-root-scroll-lock="true">
       <div className="absolute inset-0 opacity-[0.32] [background-image:linear-gradient(#d5c08a_1px,transparent_1px),linear-gradient(90deg,#d5c08a_1px,transparent_1px)] [background-size:26px_26px]" />
@@ -229,6 +285,24 @@ export default function More() {
             <div className="mt-5 border-2 border-black bg-white p-4 font-bold leading-7 shadow-[4px_4px_0_#000]">
               {message}
             </div>
+
+            <div className="mt-5 border-2 border-black bg-[#fff4c0] p-4 shadow-[4px_4px_0_#000]">
+              <div className="font-benderBold text-sm">站长口令 / OWNER CODE</div>
+              <p className="mt-2 text-xs font-bold leading-5 text-[#4b4030]">
+                纯静态站点只能做前端兑换码，适合你给自己或访客发口令开锁；不是强安全授权。
+              </p>
+              <div className="mt-3 grid grid-cols-[1fr_6rem] gap-3 portrait:grid-cols-1">
+                <input
+                  value={redeemCode}
+                  onChange={(event) => setRedeemCode(event.target.value)}
+                  placeholder="输入口令"
+                  className="border-2 border-black bg-white px-3 py-2 font-bold uppercase outline-none"
+                />
+                <button onClick={handleRedeemCode} className="border-2 border-black bg-black px-3 py-2 font-benderBold text-[#ffee22] shadow-[3px_3px_0_#000]">
+                  兑换
+                </button>
+              </div>
+            </div>
           </section>
 
           <section className="border-2 border-black bg-[#fff4c0] shadow-[8px_8px_0_#000]">
@@ -269,8 +343,8 @@ export default function More() {
                       <span>{equipped ? "EQUIPPED" : owned ? "OWNED" : "LOCKED"}</span>
                     </div>
                     <div className="mt-4 grid place-items-center">
-                      <div className="grid h-28 w-28 place-items-center border-2 border-black bg-[#fff7df] shadow-[4px_4px_0_#000]">
-                        <img src={item.icon} alt="" draggable={false} className="h-24 w-24 object-contain [image-rendering:pixelated]" />
+                      <div className={`grid place-items-center border-2 border-black bg-[#fff7df] shadow-[4px_4px_0_#000] ${item.slot === "coat" ? "h-40 w-28" : "h-28 w-28"}`}>
+                        <img src={item.icon} alt="" draggable={false} className={`${item.slot === "coat" ? "h-36 w-24" : "h-24 w-24"} object-contain [image-rendering:pixelated]`} />
                       </div>
                     </div>
                     <div className="mt-4 text-2xl font-black">{item.label}</div>

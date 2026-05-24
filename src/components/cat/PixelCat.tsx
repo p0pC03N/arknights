@@ -21,11 +21,11 @@ const poseAsset: Record<NonNullable<PixelCatProps["mood"]>, string> = {
 };
 
 const coatAsset: Record<CatCoatId, string> = {
-  tabbyWhite: "/images/cat/cat-idle.png",
-  whitePaws: "/images/cat/cat-idle.png",
-  orange: "/images/cat/cat-coat-orange.png",
-  black: "/images/cat/cat-coat-black.png",
-  calico: "/images/cat/cat-coat-calico.png",
+  tabbyWhite: "/images/cat/cat-card-tabby-white.png",
+  whitePaws: "/images/cat/cat-card-white-paws.png",
+  orange: "/images/cat/cat-card-orange.png",
+  black: "/images/cat/cat-card-black.png",
+  calico: "/images/cat/cat-card-calico.png",
 };
 
 const outfitAsset: Record<string, string> = {
@@ -51,11 +51,11 @@ function selectedCatAsset(coat: CatCoatId, outfit: PixelCatProps["outfit"], mood
     outfit?.face ? `face:${outfit.face}` : "",
     outfit?.head ? `head:${outfit.head}` : "",
     outfit?.clothes ? `clothes:${outfit.clothes}` : "",
-    outfit?.collar ? `collar:${outfit.collar}` : "",
   ];
   const found = keys.map((key) => outfitAsset[key]).find(Boolean);
   if (found) return found;
   if (mood !== "idle") return poseAsset[mood];
+  if (coat === "tabbyWhite" && outfit?.collar === "bell") return outfitAsset["collar:bell"];
   return coatAsset[coat];
 }
 

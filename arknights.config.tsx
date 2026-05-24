@@ -34,7 +34,7 @@ const config: ArknightsConfig = {
       { title: "PROFILE", subtitle: "名片", href: `${base}#operator` },
       { title: "DOSSIER", subtitle: "归档", href: `${base}#world` },
       { title: "ARCHIVE", subtitle: "封存", href: `${base}#media` },
-      { title: "MORE", subtitle: "更多内容", href: `${base}#more` },
+      { title: "CAT", subtitle: "小猫", href: `${base}#more` },
     ],
 
     toolbox: {
@@ -54,7 +54,7 @@ const config: ArknightsConfig = {
 
   pageTracker: {
     microInfo: "CORN KINGDOM",
-    labels: ["HOMEPAGE", "SIGNAL", "PROFILE", "DOSSIER", "ARCHIVE", "MORE"],
+    labels: ["HOMEPAGE", "SIGNAL", "PROFILE", "DOSSIER", "ARCHIVE", "CAT"],
   },
 
   rootPage: {

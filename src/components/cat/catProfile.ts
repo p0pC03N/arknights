@@ -11,6 +11,7 @@ export type CatProfile = {
   outfit: Partial<Record<CatOutfitSlot, string>>;
   ownedItems: string[];
   claimedArticles: string[];
+  redeemedCodes: string[];
   lastPetAt?: number;
   lastFedAt?: number;
   lastMessageRewardAt?: string;
@@ -27,7 +28,7 @@ export const CAT_PROFILE_STORAGE_KEY = "corn-kingdom-pixel-cat";
 export const CAT_PROFILE_EVENT = "corn-kingdom-cat-profile";
 
 export const defaultCatProfile: CatProfile = {
-  name: "玉米",
+  name: "米线",
   affection: 12,
   hunger: 72,
   cans: 2,
@@ -38,6 +39,7 @@ export const defaultCatProfile: CatProfile = {
   },
   ownedItems: ["coat:tabbyWhite", "coat:whitePaws", "collar:bell", "clothes:blueScarf"],
   claimedArticles: [],
+  redeemedCodes: [],
   lastUpdatedAt: 0,
 };
 
@@ -55,6 +57,7 @@ function mergeProfile(value: Partial<CatProfile> | null | undefined): CatProfile
     },
     ownedItems: Array.from(new Set([...(defaultCatProfile.ownedItems ?? []), ...(value?.ownedItems ?? [])])),
     claimedArticles: value?.claimedArticles ?? [],
+    redeemedCodes: value?.redeemedCodes ?? [],
     affection: clamp(value?.affection ?? defaultCatProfile.affection),
     hunger: clamp(value?.hunger ?? defaultCatProfile.hunger),
     cans: Math.max(0, value?.cans ?? defaultCatProfile.cans),

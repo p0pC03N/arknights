@@ -1086,3 +1086,29 @@
         min-height: 12.5rem;
     }
 }
+
+@keyframes cat-cover-pop {
+    0% {
+        opacity: 0;
+        transform: translate(-1rem, 2rem) scale(.55) rotate(-8deg);
+    }
+
+    55% {
+        opacity: 1;
+        transform: translate(.35rem, -1rem) scale(1.08) rotate(3deg);
+    }
+
+    75% {
+        transform: translate(-.15rem, .25rem) scale(.96) rotate(-1deg);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1) rotate(0);
+    }
+}
+
+.cat-cover-pop {
+    transform-origin: 18% 92%;
+    animation: cat-cover-pop .68s steps(5, end) both;
+}

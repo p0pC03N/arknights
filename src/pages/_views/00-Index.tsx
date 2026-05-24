@@ -3,6 +3,14 @@ import type { ReactNode } from "react";
 import { useStore } from "@nanostores/react";
 import { directions } from "../../components/store/lineDecoratorStore";
 import { readyToTouch, viewIndex } from "../../components/store/rootLayoutStore.ts";
+import PixelCat from "../../components/cat/PixelCat";
+import {
+  CAT_PROFILE_EVENT,
+  feedCat,
+  loadCatProfile,
+  petCat,
+} from "../../components/cat/catProfile";
+import type { CatProfile } from "../../components/cat/catProfile";
 
 const base = import.meta.env.BASE_URL;
 
@@ -273,14 +281,44 @@ function MessageBoard() {
 }
 
 function HeroCover() {
+  const [catOpen, setCatOpen] = useState(false);
+  const [profile, setProfile] = useState<CatProfile>(() => loadCatProfile());
+  const [hint, setHint] = useState("米线从封面里跳出来了。");
+
+  useEffect(() => {
+    const handleProfile = (event: Event) => {
+      setProfile((event as CustomEvent<CatProfile>).detail ?? loadCatProfile());
+    };
+
+    window.addEventListener(CAT_PROFILE_EVENT, handleProfile);
+    return () => window.removeEventListener(CAT_PROFILE_EVENT, handleProfile);
+  }, []);
+
   const openCatHome = () => {
     location.hash = "more";
     viewIndex.set(5);
   };
 
+  const popCat = () => {
+    setCatOpen(true);
+    setHint(`${profile.name} 从封面里跳出来了。`);
+  };
+
+  const handlePet = () => {
+    const result = petCat();
+    setProfile(result.profile);
+    setHint(result.petted ? `${result.profile.name} 被摸到眯起眼睛。` : `${Math.ceil(result.cooldownMs / 1000)} 秒后再摸。`);
+  };
+
+  const handleFeed = () => {
+    const result = feedCat();
+    setProfile(result.profile);
+    setHint(result.fed ? `${result.profile.name} 吃掉一个罐头。` : "没有罐头了，去读文章带一个回来。");
+  };
+
   return (
     <PixelPanel className="aspect-[1672/941] overflow-hidden bg-black">
-      <button type="button" onClick={openCatHome} className="absolute inset-0 z-[2] cursor-pointer" aria-label="打开小猫主页" />
+      <button type="button" onClick={popCat} className="absolute inset-0 z-[2] cursor-pointer" aria-label="唤出小猫" />
       <img
         src={`${base}images/home/cat-crayon-pixel-cover.webp`}
         alt="像素涂鸦猫咪封面"
@@ -288,8 +326,37 @@ function HeroCover() {
       />
       <div className="absolute inset-0 border-[10px] border-black/35" />
       <div className="pointer-events-none absolute bottom-4 left-4 z-[3] border-2 border-black bg-[#ffee22] px-4 py-2 font-benderBold text-xl text-black shadow-[5px_5px_0_#000]">
-        CAT HOME
+        WAKE CAT
       </div>
+      {catOpen && (
+        <div className="cat-cover-pop absolute bottom-5 left-5 z-[5] w-[min(25rem,calc(100%-2.5rem))] border-2 border-black bg-[#fff7df] p-3 text-black shadow-[8px_8px_0_#000]">
+          <button
+            type="button"
+            onClick={() => setCatOpen(false)}
+            className="absolute right-2 top-2 z-[2] border-2 border-black bg-white px-2 py-1 font-benderBold text-xs shadow-[2px_2px_0_#000]"
+          >
+            关
+          </button>
+          <div className="grid grid-cols-[9rem_1fr] items-center gap-3 portrait:grid-cols-1">
+            <PixelCat coat={profile.coat} outfit={profile.outfit} mood="happy" onClick={handlePet} className="min-h-[9rem] min-w-[9rem] scale-[0.62] origin-center" />
+            <div>
+              <div className="inline-block border-2 border-black bg-[#ffee22] px-2 py-1 font-benderBold text-xs">POP!</div>
+              <p className="mt-2 min-h-[3rem] text-sm font-black leading-5">{hint}</p>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                <button type="button" onClick={handlePet} className="border-2 border-black bg-white px-2 py-2 font-bold shadow-[3px_3px_0_#000]">
+                  摸摸
+                </button>
+                <button type="button" onClick={handleFeed} className="border-2 border-black bg-[#f97316] px-2 py-2 font-bold text-white shadow-[3px_3px_0_#000]">
+                  投喂
+                </button>
+                <button type="button" onClick={openCatHome} className="border-2 border-black bg-[#22d3ee] px-2 py-2 font-bold shadow-[3px_3px_0_#000]">
+                  主页
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="pointer-events-none absolute right-[5.8%] top-[15%] z-[3] w-[22%] min-w-[8rem] rotate-[1deg] border-4 border-black bg-white p-2 shadow-[6px_6px_0_#000] portrait:right-4 portrait:top-4 portrait:w-[9rem]">
         <img
           src={`${base}images/home/alipay-qr.jpg`}
