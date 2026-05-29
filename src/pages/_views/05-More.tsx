@@ -26,7 +26,7 @@ type WardrobeItem = {
   };
 };
 
-const wardrobeTabs: Array<WardrobeItem["slot"]> = ["coat", "head", "face", "collar", "clothes", "tail"];
+const wardrobeTabs: Array<WardrobeItem["slot"]> = ["coat", "face", "collar"];
 const wardrobeTabLabels: Record<WardrobeItem["slot"], string> = {
   coat: "毛色",
   head: "头部",
@@ -37,18 +37,17 @@ const wardrobeTabLabels: Record<WardrobeItem["slot"], string> = {
 };
 
 const wardrobeItems: WardrobeItem[] = [
-  { id: "coat:tabbyWhite", label: "狸花白胸", icon: "/images/cat/cat-card-tabby-white.png", slot: "coat", value: "tabbyWhite", rarity: "普通" },
-  { id: "coat:whitePaws", label: "四脚踏雪", icon: "/images/cat/cat-card-white-paws.png", slot: "coat", value: "whitePaws", rarity: "普通" },
-  { id: "coat:orange", label: "橘色能量", icon: "/images/cat/cat-card-orange.png", slot: "coat", value: "orange", rarity: "史诗", price: { kind: "cans", amount: 3 } },
-  { id: "coat:black", label: "夜巡黑猫", icon: "/images/cat/cat-card-black.png", slot: "coat", value: "black", rarity: "史诗", price: { kind: "driedFish", amount: 2 } },
-  { id: "coat:calico", label: "三花幸运", icon: "/images/cat/cat-card-calico.png", slot: "coat", value: "calico", rarity: "传说", price: { kind: "driedFish", amount: 4 } },
-  { id: "collar:bell", label: "小铃铛", icon: "/images/cat/item-bell-collar.png", slot: "collar", value: "bell", rarity: "普通" },
-  { id: "clothes:blueScarf", label: "蓝围巾", icon: "/images/cat/item-blue-scarf.png", slot: "clothes", value: "blueScarf", rarity: "普通" },
-  { id: "head:tinyHat", label: "草帽", icon: "/images/cat/item-straw-hat.png", slot: "head", value: "tinyHat", rarity: "史诗", price: { kind: "cans", amount: 4 } },
-  { id: "face:sunglasses", label: "黑色墨镜", icon: "/images/cat/item-sunglasses.png", slot: "face", value: "sunglasses", rarity: "传说", price: { kind: "driedFish", amount: 4 } },
-  { id: "face:roundGlasses", label: "圆框眼镜", icon: "/images/cat/item-round-glasses.png", slot: "face", value: "roundGlasses", rarity: "史诗", price: { kind: "cans", amount: 2 } },
-  { id: "tail:yarn", label: "毛线球", icon: "/images/cat/item-yarn.png", slot: "tail", value: "yarn", rarity: "普通", price: { kind: "cans", amount: 1 } },
-  { id: "tail:luckyFish", label: "幸运小鱼", icon: "/images/cat/item-lucky-fish.png", slot: "tail", value: "luckyFish", rarity: "传说", price: { kind: "driedFish", amount: 3 } },
+  { id: "coat:tabbyWhite", label: "狸花白胸", icon: "/images/cat/composites/tabbyWhite-none.png", slot: "coat", value: "tabbyWhite", rarity: "普通" },
+  { id: "coat:whitePaws", label: "四脚踏雪", icon: "/images/cat/composites/whitePaws-none.png", slot: "coat", value: "whitePaws", rarity: "普通" },
+  { id: "coat:orange", label: "纯橘猫", icon: "/images/cat/composites/orange-none.png", slot: "coat", value: "orange", rarity: "史诗" },
+  { id: "coat:black", label: "纯黑猫", icon: "/images/cat/composites/black-none.png", slot: "coat", value: "black", rarity: "史诗" },
+  { id: "coat:white", label: "纯白猫", icon: "/images/cat/composites/white-none.png", slot: "coat", value: "white", rarity: "史诗" },
+  { id: "coat:cow", label: "奶牛猫", icon: "/images/cat/composites/cow-none.png", slot: "coat", value: "cow", rarity: "史诗" },
+  { id: "coat:calico", label: "三花幸运", icon: "/images/cat/composites/calico-none.png", slot: "coat", value: "calico", rarity: "传说" },
+  { id: "coat:gray", label: "纯灰猫", icon: "/images/cat/composites/gray-none.png", slot: "coat", value: "gray", rarity: "普通" },
+  { id: "collar:bell", label: "小铃铛", icon: "/images/cat/composites/tabbyWhite-bell.png", slot: "collar", value: "bell", rarity: "普通" },
+  { id: "collar:blueScarf", label: "蓝围巾", icon: "/images/cat/composites/tabbyWhite-blueScarf.png", slot: "collar", value: "blueScarf", rarity: "普通" },
+  { id: "face:sunglasses", label: "黑色墨镜", icon: "/images/cat/composites/tabbyWhite-sunglasses.png", slot: "face", value: "sunglasses", rarity: "传说" },
 ];
 
 function resourceName(kind: "cans" | "driedFish") {
@@ -289,7 +288,7 @@ export default function More() {
             <div className="mt-5 border-2 border-black bg-[#fff4c0] p-4 shadow-[4px_4px_0_#000]">
               <div className="font-benderBold text-sm">站长口令 / OWNER CODE</div>
               <p className="mt-2 text-xs font-bold leading-5 text-[#4b4030]">
-                纯静态站点只能做前端兑换码，适合你给自己或访客发口令开锁；不是强安全授权。
+                这是站长偷偷塞进猫窝的小纸条。米线看不懂，但会认真把它叼进仓库。
               </p>
               <div className="mt-3 grid grid-cols-[1fr_6rem] gap-3 portrait:grid-cols-1">
                 <input
@@ -343,8 +342,8 @@ export default function More() {
                       <span>{equipped ? "EQUIPPED" : owned ? "OWNED" : "LOCKED"}</span>
                     </div>
                     <div className="mt-4 grid place-items-center">
-                      <div className={`grid place-items-center border-2 border-black bg-[#fff7df] shadow-[4px_4px_0_#000] ${item.slot === "coat" ? "h-40 w-28" : "h-28 w-28"}`}>
-                        <img src={item.icon} alt="" draggable={false} className={`${item.slot === "coat" ? "h-36 w-24" : "h-24 w-24"} object-contain [image-rendering:pixelated]`} />
+                      <div className="grid h-40 w-32 place-items-center border-2 border-black bg-[#fff7df] shadow-[4px_4px_0_#000]">
+                        <img src={item.icon} alt="" draggable={false} className="h-36 w-28 object-contain [image-rendering:pixelated]" />
                       </div>
                     </div>
                     <div className="mt-4 text-2xl font-black">{item.label}</div>

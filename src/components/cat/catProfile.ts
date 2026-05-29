@@ -1,4 +1,4 @@
-export type CatCoatId = "tabbyWhite" | "whitePaws" | "orange" | "black" | "calico";
+export type CatCoatId = "tabbyWhite" | "whitePaws" | "orange" | "black" | "white" | "cow" | "calico" | "gray";
 export type CatOutfitSlot = "head" | "face" | "collar" | "clothes" | "tail";
 
 export type CatProfile = {
@@ -37,7 +37,19 @@ export const defaultCatProfile: CatProfile = {
   outfit: {
     collar: "bell",
   },
-  ownedItems: ["coat:tabbyWhite", "coat:whitePaws", "collar:bell", "clothes:blueScarf"],
+  ownedItems: [
+    "coat:tabbyWhite",
+    "coat:whitePaws",
+    "coat:orange",
+    "coat:black",
+    "coat:white",
+    "coat:cow",
+    "coat:calico",
+    "coat:gray",
+    "collar:bell",
+    "collar:blueScarf",
+    "face:sunglasses",
+  ],
   claimedArticles: [],
   redeemedCodes: [],
   lastUpdatedAt: 0,
