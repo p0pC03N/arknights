@@ -201,7 +201,7 @@ BootLoader 要先：
 + 初始化存储设备（EMMC/UFS）
 + 初始化部分外设
 
-###2. 加载内核（Kernel）
+## 2. 加载内核（Kernel）
 
 BootLoader 从 Flash/UFS 中找到 Linux Kernel，把它拷贝到内存，然后跳转执行。
 
