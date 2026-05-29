@@ -1,16 +1,16 @@
 ---
-title: "Android 启动基础"
+title: "Android1"
 description: "ART/Dalvik、Binder、Socket、BootLoader、Kernel 与 Zygote 启动链路笔记"
 date: "2026-05-29"
 category: "Android / System"
 status: "Published"
 draft: false
 ---
-# Android 启动
+Android1
 
-## 基础知识
+# 基础知识
 
-### ART/Dalvik
+## ART/Dalvik
 
 安卓 APP 的运行环境可以理解为 Java/Kotlin 代码解释器和管理器。
 
@@ -34,7 +34,7 @@ Android 虚拟机主要经历过两类运行时：Dalvik 和 ART。JIT 与 AOT �
 + 老安卓：Dalvik VM
 + 新安卓：ART Runtime
 
-#### AOT (Ahead Of Time) 与 JIT
+### AOT (Ahead Of Time) 与 JIT
 
 Dalvik 负责将 dex 翻译为机器码交由系统调用。这样有一个缺陷：每次执行代码，都需要 Dalvik 将操作码翻译为机器对应的微处理器指令，然后交给底层系统处理，运行效率很低。
 
@@ -46,11 +46,11 @@ JIT 是运行时编译，是动态编译，可以对执行次数频繁的 dex �
 
 AOT 是静态编译。应用在安装的时候会启动 `dex2oat` 过程，把 dex 预编译成 ELF 文件，每次运行程序的时候不用重新编译。
 
-## Binder
+# Binder
 
 ![Binder 结构](image-11.png)
 
-### Linux 的基础知识
+## Linux 的基础知识
 
 ![Linux 基础概念](image-12.png)
 
@@ -74,7 +74,7 @@ Binder 跨进程通信机制模型基于 Client - Server 模式：
 
 + 存在映射关系：两个不同进程中的虚拟地址，实际上指向同一块物理内存。共享同一块物理页可以减少拷贝。
 
-## Socket
+# Socket
 
 TCP/IP（Transmission Control Protocol/Internet Protocol）即传输控制协议/网间协议，是一个工业标准的协议集，它是为广域网（WANs）设计的。TCP socket 是流式套接字。
 
@@ -150,7 +150,7 @@ Socket 其实就是一个门面模式。Socket 不是协议本身，而是操作
    close(sockfd);
    ```
 
-## 安卓启动
+# 安卓启动
 
 ```text
 BootLoader
@@ -165,7 +165,7 @@ BootLoader
                  -> app 启动
 ```
 
-## BootLoader
+# BootLoader
 
 + Bootloader：是那段程序本身，它提供了加载应用程序和执行固件更新的基础能力。
 + IAP (In-Application Programming)：是一种技术或过程，指的是在设备运行状态下，通常是在 Bootloader 的引导下，对自身的程序存储器进行擦写，以达到更新固件的目的。
@@ -191,7 +191,7 @@ BootLoader 启动
 启动 Android/Linux 系统
 ```
 
-### 1. 初始化最基础硬件
+## 1. 初始化最基础硬件
 
 BootLoader 要先：
 
@@ -201,19 +201,19 @@ BootLoader 要先：
 + 初始化存储设备（EMMC/UFS）
 + 初始化部分外设
 
-### 2. 加载内核（Kernel）
+###2. 加载内核（Kernel）
 
 BootLoader 从 Flash/UFS 中找到 Linux Kernel，把它拷贝到内存，然后跳转执行。
 
-### 优势
+## 优势
 
 BootLoader 可以实现固件的远程更新，也就是 IAP（In-Application Programming，在应用编程）或者 OTA（Over-The-Air，空中升级）。
 
 有了 Bootloader，我们就可以通过预留的通信接口，比如串口 UART、USB、CAN、以太网，甚至无线方式如蓝牙、Wi-Fi、LoRa、NB-IoT 等，给设备发送新的应用程序固件。Bootloader 负责接收这些固件数据，把它写入到应用程序的存储区域，然后重新启动，加载新的程序。
 
-## Linux Kernel
+# Linux Kernel
 
-### 整体架构和子系统划分
+## 整体架构和子系统划分
 
 根据内核的核心功能，Linux 内核提出了 5 个子系统，分别负责如下功能：
 
@@ -223,11 +223,11 @@ BootLoader 可以实现固件的远程更新，也就是 IAP（In-Application Pr
 4. Network，网络子系统。负责管理系统的网络设备，并实现多种多样的网络标准。
 5. IPC（Inter-Process Communication），进程间通信。IPC 不管理任何硬件，它主要负责 Linux 系统中进程之间的通信。
 
-## init
+# init
 
 `init` 是 Linux 用户空间的第一个进程，通常 PID 为 1。Android 启动后，`init` 会解析启动配置，挂载必要文件系统，启动系统服务，并继续拉起 Zygote 等关键进程。
 
-## Zygote
+# Zygote
 
 ![Zygote 启动](image-10.png)
 
@@ -235,13 +235,13 @@ BootLoader 可以实现固件的远程更新，也就是 IAP（In-Application Pr
 
 本质上，Zygote 是一个提前初始化好的 ART/Dalvik 虚拟机进程，通过 `fork()` 快速创建新的 App 进程。
 
-### Copy-On-Write（写时拷贝）
+## Copy-On-Write（写时拷贝）
 
 写时拷贝（Copy-On-Write，简称 COW）是一种内存优化技术，用于在多个进程或对象共享同一数据副本时，推迟实际数据复制的时机。它通过在数据修改前才执行真正的拷贝操作，以减少不必要的内存分配与复制开销。
 
 当多个实体（进程或对象）指向同一数据块时，系统不会立即复制数据，而是共享相同的内存区域。只有当其中一个实体尝试修改数据时，系统才会创建数据的独立副本，并将修改应用于该副本。这样，未修改的数据仍被其他实体共享。
 
-## 参考文章
+# 参考文章
 
 + https://zhuanlan.zhihu.com/p/1919340613746299667
 + https://zhuanlan.zhihu.com/p/438166236
