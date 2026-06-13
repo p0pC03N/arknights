@@ -27,13 +27,18 @@ export default function Operator() {
       }`}
     >
       <section className="w-full h-full relative overflow-hidden bg-black">
-        <iframe
-          src={prototypeSrc}
-          title="Tarot Friend Links"
-          data-native-cursor="true"
-          className="w-full h-full border-0 block"
-          allow="fullscreen"
-        />
+        {isActive ? (
+          <iframe
+            src={prototypeSrc}
+            title="Tarot Friend Links"
+            data-native-cursor="true"
+            className="w-full h-full border-0 block"
+            allow="fullscreen"
+            loading="lazy"
+          />
+        ) : (
+          <div className="h-full w-full bg-black" aria-hidden="true" />
+        )}
 
         <div className="absolute right-8 bottom-7 z-10 pointer-events-none select-none">
           <div className="px-4 py-2 border border-white/10 bg-black/45 backdrop-blur-md text-right">

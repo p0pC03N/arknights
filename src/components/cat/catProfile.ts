@@ -26,6 +26,12 @@ export type CatProfileReward =
 
 export const CAT_PROFILE_STORAGE_KEY = "corn-kingdom-pixel-cat";
 export const CAT_PROFILE_EVENT = "corn-kingdom-cat-profile";
+const LEGACY_DEFAULT_CAT_NAMES = new Set(["", "小猫", "猫猫", "Pixel Cat", "pixel cat"]);
+const SUPPORTED_OUTFIT_VALUES: Partial<Record<CatOutfitSlot, Set<string>>> = {
+  face: new Set(["sunglasses"]),
+  collar: new Set(["bell", "blueScarf"]),
+  clothes: new Set(["red-ribbon-bow", "sleep-cap", "headphones", "explorer-backpack", "rain-poncho", "star-charm-collar"]),
+};
 
 export const defaultCatProfile: CatProfile = {
   name: "米线",
@@ -49,6 +55,12 @@ export const defaultCatProfile: CatProfile = {
     "collar:bell",
     "collar:blueScarf",
     "face:sunglasses",
+    "clothes:red-ribbon-bow",
+    "clothes:sleep-cap",
+    "clothes:headphones",
+    "clothes:explorer-backpack",
+    "clothes:rain-poncho",
+    "clothes:star-charm-collar",
   ],
   claimedArticles: [],
   redeemedCodes: [],
@@ -59,13 +71,30 @@ function clamp(value: number, min = 0, max = 100) {
   return Math.min(max, Math.max(min, value));
 }
 
+function sanitizeOutfit(outfit: Partial<Record<CatOutfitSlot, string>> | undefined) {
+  const next: Partial<Record<CatOutfitSlot, string>> = {};
+
+  (Object.keys(SUPPORTED_OUTFIT_VALUES) as CatOutfitSlot[]).forEach((slot) => {
+    const value = outfit?.[slot];
+    if (value && SUPPORTED_OUTFIT_VALUES[slot]?.has(value)) {
+      next[slot] = value;
+    }
+  });
+
+  return next;
+}
+
 function mergeProfile(value: Partial<CatProfile> | null | undefined): CatProfile {
+  const rawName = value?.name?.trim() ?? "";
+  const name = LEGACY_DEFAULT_CAT_NAMES.has(rawName) ? defaultCatProfile.name : value?.name ?? defaultCatProfile.name;
+
   return {
     ...defaultCatProfile,
     ...value,
+    name,
     outfit: {
-      ...defaultCatProfile.outfit,
-      ...(value?.outfit ?? {}),
+      ...sanitizeOutfit(defaultCatProfile.outfit),
+      ...sanitizeOutfit(value?.outfit),
     },
     ownedItems: Array.from(new Set([...(defaultCatProfile.ownedItems ?? []), ...(value?.ownedItems ?? [])])),
     claimedArticles: value?.claimedArticles ?? [],

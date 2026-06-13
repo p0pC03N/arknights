@@ -1112,3 +1112,82 @@
     transform-origin: 18% 92%;
     animation: cat-cover-pop .68s steps(5, end) both;
 }
+
+@keyframes cat-hungry-wiggle {
+    0%, 100% {
+        transform: translateX(0) rotate(0);
+    }
+
+    20% {
+        transform: translateX(-.35rem) rotate(-1.5deg);
+    }
+
+    45% {
+        transform: translateX(.35rem) rotate(1.5deg);
+    }
+
+    70% {
+        transform: translateX(-.18rem) rotate(-.7deg);
+    }
+}
+
+.cat-hungry-wiggle {
+    animation: cat-hungry-wiggle .42s steps(3, end) both;
+}
+
+@keyframes cat-action-rise {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, 1.6rem) scale(.7) rotate(-4deg);
+    }
+
+    18% {
+        opacity: 1;
+    }
+
+    72% {
+        opacity: 1;
+        transform: translate(-50%, -1.7rem) scale(1.04) rotate(2deg);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -3.4rem) scale(.88) rotate(0);
+    }
+}
+
+.cat-action-effect {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    min-width: max-content;
+    border: 2px solid #000;
+    background: #fff;
+    padding: .45rem .7rem;
+    color: #000;
+    font-weight: 900;
+    box-shadow: 4px 4px 0 #000;
+    animation: cat-action-rise 1.08s steps(6, end) both;
+}
+
+.cat-action-effect-pet {
+    background: #ffe4ef;
+}
+
+.cat-action-effect-pet::before {
+    content: "♥";
+    color: #f43f5e;
+}
+
+.cat-action-effect-feed {
+    background: #fff2bf;
+}
+
+.cat-action-effect-hungry {
+    background: #d8d0c8;
+}
+
+.cat-action-effect-spark {
+    background: #dff8ff;
+}

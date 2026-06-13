@@ -82,7 +82,7 @@ export function Sound() {
             transition: "transform .3s",
             transform: `scaleY(${active ? 1 : .5})`,
         }}/>
-        <audio ref={audioRef} src={arknightsConfig?.bgm?.src ?? `${import.meta.env.BASE_URL}audios/bgm.mp3`}/>
+        <audio ref={audioRef} preload="none" src={arknightsConfig?.bgm?.src ?? `${import.meta.env.BASE_URL}audios/bgm.mp3`}/>
     </div>
 }
 

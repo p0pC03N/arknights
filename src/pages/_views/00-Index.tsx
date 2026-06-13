@@ -227,13 +227,20 @@ function FortunePanel() {
   );
 }
 
-function MessageBoard() {
+function MessageBoard({ active }: { active: boolean }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [readyToLoad, setReadyToLoad] = useState(false);
   const isConfigured = Boolean(giscusConfig.categoryId);
 
   useEffect(() => {
+    if (!active || readyToLoad) return;
+    const timer = window.setTimeout(() => setReadyToLoad(true), 1200);
+    return () => window.clearTimeout(timer);
+  }, [active, readyToLoad]);
+
+  useEffect(() => {
     const container = containerRef.current;
-    if (!container || !isConfigured) return;
+    if (!container || !isConfigured || !readyToLoad) return;
 
     container.innerHTML = "";
 
@@ -259,7 +266,7 @@ function MessageBoard() {
     return () => {
       container.innerHTML = "";
     };
-  }, [isConfigured]);
+  }, [isConfigured, readyToLoad]);
 
   return (
     <PixelPanel className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#071014] text-white">
@@ -471,7 +478,7 @@ export default function Index() {
 
           <aside className="flex min-h-full flex-col gap-5">
             <FortunePanel />
-            <MessageBoard />
+            <MessageBoard active={active} />
           </aside>
         </div>
       </div>

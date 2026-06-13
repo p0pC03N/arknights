@@ -26,13 +26,13 @@ type WardrobeItem = {
   };
 };
 
-const wardrobeTabs: Array<WardrobeItem["slot"]> = ["coat", "face", "collar"];
+const wardrobeTabs: Array<WardrobeItem["slot"]> = ["coat", "clothes", "face", "collar"];
 const wardrobeTabLabels: Record<WardrobeItem["slot"], string> = {
   coat: "毛色",
   head: "头部",
   face: "面部",
   collar: "项圈",
-  clothes: "衣服",
+  clothes: "套装",
   tail: "玩具",
 };
 
@@ -48,6 +48,12 @@ const wardrobeItems: WardrobeItem[] = [
   { id: "collar:bell", label: "小铃铛", icon: "/images/cat/composites/tabbyWhite-bell.png", slot: "collar", value: "bell", rarity: "普通" },
   { id: "collar:blueScarf", label: "蓝围巾", icon: "/images/cat/composites/tabbyWhite-blueScarf.png", slot: "collar", value: "blueScarf", rarity: "普通" },
   { id: "face:sunglasses", label: "黑色墨镜", icon: "/images/cat/composites/tabbyWhite-sunglasses.png", slot: "face", value: "sunglasses", rarity: "传说" },
+  { id: "clothes:red-ribbon-bow", label: "红色蝴蝶结", icon: "/images/cat/upload-ready/v2-accessories/cat-tabbyWhite-red-ribbon-bow.png", slot: "clothes", value: "red-ribbon-bow", rarity: "普通" },
+  { id: "clothes:sleep-cap", label: "晚安睡帽", icon: "/images/cat/upload-ready/v2-accessories/cat-tabbyWhite-sleep-cap.png", slot: "clothes", value: "sleep-cap", rarity: "史诗", price: { kind: "driedFish", amount: 2 } },
+  { id: "clothes:headphones", label: "轻量耳机", icon: "/images/cat/upload-ready/v2-accessories/cat-tabbyWhite-headphones.png", slot: "clothes", value: "headphones", rarity: "史诗", price: { kind: "cans", amount: 2 } },
+  { id: "clothes:explorer-backpack", label: "探险背包", icon: "/images/cat/upload-ready/v2-accessories/cat-tabbyWhite-explorer-backpack.png", slot: "clothes", value: "explorer-backpack", rarity: "史诗", price: { kind: "cans", amount: 2 } },
+  { id: "clothes:rain-poncho", label: "黄色雨披", icon: "/images/cat/upload-ready/v2-accessories/cat-tabbyWhite-rain-poncho.png", slot: "clothes", value: "rain-poncho", rarity: "传说", price: { kind: "driedFish", amount: 3 } },
+  { id: "clothes:star-charm-collar", label: "星星项圈", icon: "/images/cat/upload-ready/v2-accessories/cat-tabbyWhite-star-charm-collar.png", slot: "clothes", value: "star-charm-collar", rarity: "普通" },
 ];
 
 function resourceName(kind: "cans" | "driedFish") {
@@ -87,8 +93,13 @@ function buyOrEquip(profile: CatProfile, item: WardrobeItem): { profile: CatProf
 
   if (item.slot === "coat") {
     next.coat = item.value as CatCoatId;
+  } else if (item.slot === "clothes") {
+    next.outfit.clothes = isItemEquipped(profile, item) ? undefined : item.value;
+    next.outfit.face = undefined;
+    next.outfit.collar = undefined;
   } else {
     next.outfit[item.slot] = isItemEquipped(profile, item) ? undefined : item.value;
+    next.outfit.clothes = undefined;
   }
 
   saveCatProfile(next);
@@ -157,6 +168,13 @@ function Meter({ label, value, color }: { label: string; value: number; color: s
   );
 }
 
+type CatEffect = {
+  id: number;
+  kind: "pet" | "feed" | "hungry" | "spark";
+  label: string;
+  image?: string;
+};
+
 export default function More() {
   const $viewIndex = useStore(viewIndex);
   const $readyToTouch = useStore(readyToTouch);
@@ -167,6 +185,7 @@ export default function More() {
   const [redeemCode, setRedeemCode] = useState("");
   const [message, setMessage] = useState("点击小猫可以抚摸，读文章会带回罐头。");
   const [mood, setMood] = useState<"idle" | "happy" | "hungry">("idle");
+  const [effects, setEffects] = useState<CatEffect[]>([]);
 
   useEffect(() => {
     const isActive = $viewIndex === 5 && $readyToTouch;
@@ -185,8 +204,22 @@ export default function More() {
     return () => window.removeEventListener(CAT_PROFILE_EVENT, handleProfile);
   }, []);
 
+  useEffect(() => {
+    if (mood === "idle") return;
+    const timer = window.setTimeout(() => setMood("idle"), 950);
+    return () => window.clearTimeout(timer);
+  }, [mood]);
+
   const filteredItems = useMemo(() => wardrobeItems.filter((item) => item.slot === tab), [tab]);
   const ownedCount = profile.ownedItems.length;
+
+  const showEffect = (effect: Omit<CatEffect, "id">) => {
+    const id = Date.now() + Math.random();
+    setEffects((items) => [...items, { id, ...effect }].slice(-6));
+    window.setTimeout(() => {
+      setEffects((items) => items.filter((item) => item.id !== id));
+    }, 1150);
+  };
 
   const handleSaveName = () => {
     const next = { ...profile, name: clampName(draftName) };
@@ -199,6 +232,11 @@ export default function More() {
     const result = feedCat();
     setProfile(result.profile);
     setMood(result.fed ? "happy" : "hungry");
+    showEffect(
+      result.fed
+        ? { kind: "feed", label: "罐头 -1 / 饱食 +22", image: "/images/cat/item-can.png" }
+        : { kind: "hungry", label: "没有罐头了", image: "/images/cat/item-broken-bowl.png" },
+    );
     setMessage(result.fed ? `${result.profile.name} 吃掉一个罐头，发出了满意的咕噜声。` : "没有罐头了，去读一篇文章吧。");
   };
 
@@ -206,6 +244,7 @@ export default function More() {
     const result = petCat();
     setProfile(result.profile);
     setMood(result.petted ? "happy" : "idle");
+    showEffect(result.petted ? { kind: "pet", label: "亲密 +3" } : { kind: "spark", label: `${Math.ceil(result.cooldownMs / 1000)}s` });
     setMessage(result.petted ? `${result.profile.name} 被摸到眯起了眼睛。` : `小猫正在回味，${Math.ceil(result.cooldownMs / 1000)} 秒后再摸。`);
   };
 
@@ -213,12 +252,14 @@ export default function More() {
     const result = claimMessageReward();
     setProfile(result.profile);
     setMood(result.claimed ? "happy" : "idle");
+    if (result.claimed) showEffect({ kind: "feed", label: "小鱼干 +1", image: "/images/cat/item-dried-fish.png" });
     setMessage(result.claimed ? "留言奖励领取成功，小猫叼来 1 条小鱼干。" : "今天的小鱼干已经领过了，明天再来。");
   };
 
   const handleWardrobe = (item: WardrobeItem) => {
     const result = buyOrEquip(profile, item);
     setProfile(result.profile);
+    showEffect({ kind: "spark", label: profile.ownedItems.includes(item.id) ? "换装完成" : "新装扮" });
     setMessage(result.message);
   };
 
@@ -252,9 +293,21 @@ export default function More() {
 
         <div className="grid gap-5 landscape:grid-cols-[minmax(0,1.05fr)_minmax(24rem,.95fr)] portrait:grid-cols-1">
           <section className="border-2 border-black bg-[#f7f1df] p-5 shadow-[8px_8px_0_#000]">
-            <div className="min-h-[34rem] border-2 border-black bg-[linear-gradient(180deg,#eef6ff,#fff8df)] p-4 shadow-[inset_0_0_0_2px_rgba(255,255,255,.55)] portrait:min-h-[28rem]">
+            <div className="relative min-h-[34rem] overflow-hidden border-2 border-black bg-[linear-gradient(180deg,#eef6ff,#fff8df)] p-4 shadow-[inset_0_0_0_2px_rgba(255,255,255,.55)] portrait:min-h-[28rem]">
               <div className="flex min-h-[30rem] items-center justify-center portrait:min-h-[24rem]">
                 <PixelCat coat={profile.coat} outfit={profile.outfit} mood={mood} onClick={handlePet} className="scale-[1.1] portrait:scale-100" />
+              </div>
+              <div className="pointer-events-none absolute inset-0">
+                {effects.map((effect, index) => (
+                  <div
+                    key={effect.id}
+                    className={`cat-action-effect cat-action-effect-${effect.kind}`}
+                    style={{ left: `${31 + index * 8}%`, top: `${48 - (index % 2) * 12}%` }}
+                  >
+                    {effect.image && <img src={effect.image} alt="" draggable={false} className="h-12 w-12 object-contain [image-rendering:pixelated]" />}
+                    <span>{effect.label}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -276,9 +329,9 @@ export default function More() {
             </div>
 
             <div className="mt-5 grid grid-cols-3 gap-3 portrait:grid-cols-1">
-              <button onClick={handlePet} className="border-2 border-black bg-[#ffee22] px-3 py-3 font-benderBold shadow-[4px_4px_0_#000]">抚摸</button>
-              <button onClick={handleFeed} className="border-2 border-black bg-[#f97316] px-3 py-3 font-benderBold text-white shadow-[4px_4px_0_#000]">投喂罐头</button>
-              <button onClick={handleMessageReward} className="border-2 border-black bg-[#84cc16] px-3 py-3 font-benderBold shadow-[4px_4px_0_#000]">留言奖励</button>
+              <button type="button" onClick={handlePet} className="border-2 border-black bg-[#ffee22] px-3 py-3 font-benderBold shadow-[4px_4px_0_#000] transition-transform hover:-translate-y-1 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">抚摸</button>
+              <button type="button" onClick={handleFeed} className="border-2 border-black bg-[#f97316] px-3 py-3 font-benderBold text-white shadow-[4px_4px_0_#000] transition-transform hover:-translate-y-1 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">投喂罐头</button>
+              <button type="button" onClick={handleMessageReward} className="border-2 border-black bg-[#84cc16] px-3 py-3 font-benderBold shadow-[4px_4px_0_#000] transition-transform hover:-translate-y-1 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">留言奖励</button>
             </div>
 
             <div className="mt-5 border-2 border-black bg-white p-4 font-bold leading-7 shadow-[4px_4px_0_#000]">
@@ -343,7 +396,7 @@ export default function More() {
                     </div>
                     <div className="mt-4 grid place-items-center">
                       <div className="grid h-40 w-32 place-items-center border-2 border-black bg-[#fff7df] shadow-[4px_4px_0_#000]">
-                        <img src={item.icon} alt="" draggable={false} className="h-36 w-28 object-contain [image-rendering:pixelated]" />
+                        <img src={item.icon} alt="" loading="lazy" draggable={false} className="h-36 w-28 object-contain [image-rendering:pixelated]" />
                       </div>
                     </div>
                     <div className="mt-4 text-2xl font-black">{item.label}</div>

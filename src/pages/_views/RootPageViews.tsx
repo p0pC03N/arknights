@@ -49,9 +49,11 @@ export default function RootPageViews() {
             HASH === item.href.split("#")[1])
         return INDEX === -1 ? 0 : INDEX;
     });
+    const [visitedIndexes, setVisitedIndexes] = useState<Set<number>>(() => new Set([localViewIndex]));
 
     useLayoutEffect(() => {
         viewIndex.set(localViewIndex);
+        setVisitedIndexes((indexes) => new Set(indexes).add(localViewIndex));
         setIsLoading(false);
     }, [localViewIndex]);
 
@@ -141,7 +143,9 @@ export default function RootPageViews() {
         return null; // 或者返回一个加载指示器
     }
 
+    const renderedIndexes = new Set(visitedIndexes).add(localViewIndex);
+
     return [Index, Information, Operator, World, Media, More].map((Element, index) =>
-        <RootPageViewTemplate key={index} selfIndex={index}><Element /></RootPageViewTemplate>
+        renderedIndexes.has(index) ? <RootPageViewTemplate key={index} selfIndex={index}><Element /></RootPageViewTemplate> : null
     )
 }
