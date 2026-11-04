@@ -45,6 +45,10 @@ git push origin main
 
 牌组与星门分别位于 `src/pages/friend-links.astro`、`src/pages/friend-links-gate.astro`，交互脚本位于 `src/scripts/friend-links-*.js`。牌图使用 `public/friend-links-deck/*.webp`；首次只加载共享牌背，翻牌时才加载对应牌面。页面离开时暂停渲染，返回时复用场景。加载失败时提供重试和直接访问友链的入口。
 
+## 暂停展示的功能
+
+小猫功能通过 `src/features.ts` 中的 `CAT_ENABLED = false` 暂停展示：首页唤猫、CAT 导航与页面、文章阅读奖励均不启用，旧 `#more` 链接返回首页。实现、素材和浏览器本地存档保留；以后可将开关改为 `true` 后重新构建发布。
+
 ## 许可证
 
 本仓库保留上游模板的 `MIT License`。当前站点基于 [Yue-plus/astro-arknights](https://github.com/Yue-plus/astro-arknights) 二次开发，后续视觉和内容会逐步替换为个人站点版本。

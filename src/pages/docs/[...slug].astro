@@ -3,6 +3,7 @@ import {getCollection} from 'astro:content'
 // import {Debug} from 'astro:components'
 import DocsLayout from "../../layouts/DocsLayout.astro"
 import { filterPublishedEntries, sortDocEntries, trimSlugPrefix } from '../../content/utils'
+import { CAT_ENABLED } from "../../features";
 import ArticleCatReward from "../../components/cat/ArticleCatReward";
 
 export async function getStaticPaths() {
@@ -22,5 +23,5 @@ const title = entry?.data?.title ?? headings[0]?.text ?? "无标题"
     <article>
         <Content/>
     </article>
-    <ArticleCatReward client:load articleId={`docs:${entry.slug}`} />
+    {CAT_ENABLED && <ArticleCatReward client:load articleId={`docs:${entry.slug}`} />}
 </DocsLayout>

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useStore } from "@nanostores/react";
 import { directions } from "../../components/store/lineDecoratorStore";
 import { readyToTouch, viewIndex } from "../../components/store/rootLayoutStore.ts";
+import { CAT_ENABLED } from "../../features";
 import PixelCat from "../../components/cat/PixelCat";
 import {
   CAT_PROFILE_EVENT,
@@ -287,7 +288,7 @@ function MessageBoard({ active }: { active: boolean }) {
   );
 }
 
-function HeroCover() {
+function HeroCatOverlay() {
   const [catOpen, setCatOpen] = useState(false);
   const [profile, setProfile] = useState<CatProfile>(() => loadCatProfile());
   const [hint, setHint] = useState("米线从封面里跳出来了。");
@@ -324,14 +325,8 @@ function HeroCover() {
   };
 
   return (
-    <PixelPanel className="aspect-[1672/941] overflow-hidden bg-black">
+    <>
       <button type="button" onClick={popCat} className="absolute inset-0 z-[2] cursor-pointer" aria-label="唤出小猫" />
-      <img
-        src={`${base}images/home/cat-crayon-pixel-cover.webp`}
-        alt="像素涂鸦猫咪封面"
-        className="h-full w-full object-cover [image-rendering:pixelated]"
-      />
-      <div className="absolute inset-0 border-[10px] border-black/35" />
       <div className="pointer-events-none absolute bottom-4 left-4 z-[3] border-2 border-black bg-[#ffee22] px-4 py-2 font-benderBold text-xl text-black shadow-[5px_5px_0_#000]">
         WAKE CAT
       </div>
@@ -364,6 +359,20 @@ function HeroCover() {
           </div>
         </div>
       )}
+    </>
+  );
+}
+
+function HeroCover() {
+  return (
+    <PixelPanel className="aspect-[1672/941] overflow-hidden bg-black">
+      {CAT_ENABLED && <HeroCatOverlay />}
+      <img
+        src={`${base}images/home/cat-crayon-pixel-cover.webp`}
+        alt="像素涂鸦猫咪封面"
+        className="h-full w-full object-cover [image-rendering:pixelated]"
+      />
+      <div className="absolute inset-0 border-[10px] border-black/35" />
       <div className="pointer-events-none absolute right-[5.8%] top-[15%] z-[3] w-[22%] min-w-[8rem] rotate-[1deg] border-4 border-black bg-white p-2 shadow-[6px_6px_0_#000] portrait:right-4 portrait:top-4 portrait:w-[9rem]">
         <img
           src={`${base}images/home/alipay-qr.jpg`}
@@ -466,7 +475,7 @@ export default function Index() {
             </h1>
           </div>
           <p className="max-w-[27rem] border-2 border-black bg-white px-4 py-3 text-sm font-bold leading-6 text-black shadow-[5px_5px_0_#000] portrait:mt-4">
-            喵喵喵&gt;w&lt;
+            {CAT_ENABLED ? "喵喵喵>w<" : "逆向、CTF 与个人记录"}
           </p>
         </div>
 

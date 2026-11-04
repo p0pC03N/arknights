@@ -8,6 +8,7 @@ import Operator from "./02-Operator.tsx";
 import World from "./03-World.tsx";
 import Media from "./04-Media.tsx";
 import More from "./05-More.tsx";
+import { CAT_ENABLED } from "../../features";
 
 function getScrollableAncestor(target: EventTarget | null, rootElement: HTMLElement | null) {
     if (!(target instanceof HTMLElement) || !rootElement) return null;
@@ -40,15 +41,21 @@ function canConsumeScroll(element: HTMLElement, deltaY: number) {
     return false;
 }
 
+// Retired cat bookmarks return to the home page while the feature is shelved.
+function resolveViewIndex() {
+    const hash = location.hash.slice(1);
+    if (!CAT_ENABLED && hash === "more") {
+        history.replaceState(history.state, "", `${location.pathname}${location.search}#index`);
+        return 0;
+    }
+    const index = arknightsConfig.navbar.items.findIndex(item => hash === item.href.split("#")[1]);
+    return index === -1 ? 0 : index;
+}
+
 export default function RootPageViews() {
     const [isLoading, setIsLoading] = useState(true);
 
-    const [localViewIndex, setLocalViewIndex] = useState(() => {
-        const HASH = location.hash.split("#")[1];
-        const INDEX = arknightsConfig.navbar.items.findIndex(item =>
-            HASH === item.href.split("#")[1])
-        return INDEX === -1 ? 0 : INDEX;
-    });
+    const [localViewIndex, setLocalViewIndex] = useState(resolveViewIndex);
     const [visitedIndexes, setVisitedIndexes] = useState<Set<number>>(() => new Set([localViewIndex]));
 
     useLayoutEffect(() => {
@@ -60,10 +67,7 @@ export default function RootPageViews() {
     // 处理 hash 变化
     useLayoutEffect(() => {
         const handleHashChange = () => {
-            const HASH = location.hash.split("#")[1];
-            const INDEX = arknightsConfig.navbar.items.findIndex(item =>
-                HASH === item.href.split("#")[1])
-            setLocalViewIndex(INDEX === -1 ? 0 : INDEX);
+            setLocalViewIndex(resolveViewIndex());
         }
 
         window.addEventListener("hashchange", handleHashChange);
@@ -71,10 +75,7 @@ export default function RootPageViews() {
     }, []);
 
     useLayoutEffect(() => {
-        const HASH = location.hash.split("#")[1];
-        const INDEX = arknightsConfig.navbar.items.findIndex(item =>
-            HASH === item.href.split("#")[1])
-        viewIndex.set(INDEX === -1 ? 0 : INDEX)
+        viewIndex.set(resolveViewIndex());
     }, [])
 
     const startTouchY = useRef(0)
@@ -145,7 +146,7 @@ export default function RootPageViews() {
 
     const renderedIndexes = new Set(visitedIndexes).add(localViewIndex);
 
-    return [Index, Information, Operator, World, Media, More].map((Element, index) =>
+    return [Index, Information, Operator, World, Media, ...(CAT_ENABLED ? [More] : [])].map((Element, index) =>
         renderedIndexes.has(index) ? <RootPageViewTemplate key={index} selfIndex={index}><Element /></RootPageViewTemplate> : null
     )
 }
