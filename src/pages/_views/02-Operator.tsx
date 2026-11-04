@@ -1,22 +1,43 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useStore } from "@nanostores/react";
 import { viewIndex, readyToTouch } from "../../components/store/rootLayoutStore";
 import { directions } from "../../components/store/lineDecoratorStore";
 
-const prototypeSrc = `${import.meta.env.BASE_URL}friend-links-magic-phase1.html?v=20260427-1`;
+const sceneSrc = `${import.meta.env.BASE_URL}friend-links/`;
 
 export default function Operator() {
   const $viewIndex = useStore(viewIndex);
   const $readyToTouch = useStore(readyToTouch);
   const isActive = $viewIndex === 2 && $readyToTouch;
 
-  useEffect(() => {
-    if (!isActive) {
-      return;
-    }
+  const [hasVisited, setHasVisited] = useState(false);
+  const iframe = useRef<HTMLIFrameElement>(null);
 
-    directions.set({ top: true, right: true, bottom: true, left: false });
-  }, [isActive]);
+  const syncActivity = () => {
+    iframe.current?.contentWindow?.postMessage(
+      { type: "arcana:activity", active: isActive },
+      window.location.origin,
+    );
+  };
+
+  useEffect(() => {
+    // Load behind the site's intro, instead of adding another wait after it.
+    if ($viewIndex === 2) setHasVisited(true);
+    if (isActive) {
+      directions.set({ top: true, right: true, bottom: true, left: false });
+    }
+    syncActivity();
+    // Also synchronize when modules initialize after iframe.onload.
+    const handleReady = (event: MessageEvent) => {
+      if (
+        event.origin === window.location.origin &&
+        event.source === iframe.current?.contentWindow &&
+        event.data?.type === "arcana:ready"
+      ) syncActivity();
+    };
+    window.addEventListener("message", handleReady);
+    return () => window.removeEventListener("message", handleReady);
+  }, [$viewIndex, isActive]);
 
   return (
     <div
@@ -27,29 +48,17 @@ export default function Operator() {
       }`}
     >
       <section className="w-full h-full relative overflow-hidden bg-black">
-        {isActive ? (
+        {hasVisited && (
           <iframe
-            src={prototypeSrc}
-            title="Tarot Friend Links"
-            data-native-cursor="true"
+            ref={iframe}
+            src={sceneSrc}
+            title="塔罗友链"
+            data-shared-cursor="true"
             className="w-full h-full border-0 block"
-            allow="fullscreen"
-            loading="lazy"
+            onLoad={syncActivity}
+            tabIndex={isActive ? 0 : -1}
           />
-        ) : (
-          <div className="h-full w-full bg-black" aria-hidden="true" />
         )}
-
-        <div className="absolute right-8 bottom-7 z-10 pointer-events-none select-none">
-          <div className="px-4 py-2 border border-white/10 bg-black/45 backdrop-blur-md text-right">
-            <div className="text-[0.72rem] tracking-[0.35em] text-[#f0d18c] font-bold">
-              TAROT
-            </div>
-            <div className="mt-1 text-[0.75rem] text-white/72 tracking-[0.16em]">
-              Friend Links Arcana
-            </div>
-          </div>
-        </div>
       </section>
     </div>
   );

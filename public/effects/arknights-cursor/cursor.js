@@ -21,7 +21,10 @@
       this.lastFrameAt = 0;
       this.isAnimating = false;
       this.isFading = false;
+      this.isHolding = false;
       this.boundDocuments = new WeakSet();
+      this.boundFrames = new WeakSet();
+      this.observedDocuments = new WeakSet();
 
       const container = document.createElement("div");
       container.id = "cursor-container";
@@ -91,12 +94,16 @@
       };
 
       this.hold = () => {
+        if (this.isHolding) return;
+        this.isHolding = true;
         this.outer.height = "24px";
         this.outer.width = "24px";
         this.outer.background = "rgba(255, 255, 255, 0.5)";
       };
 
       this.relax = () => {
+        if (!this.isHolding) return;
+        this.isHolding = false;
         this.outer.height = "36px";
         this.outer.width = "36px";
         this.outer.background = "unset";
@@ -113,15 +120,17 @@
 
       const rect = frameElement.getBoundingClientRect();
       return {
-        x: rect.left + event.clientX,
-        y: rect.top + event.clientY,
+        x: rect.left + event.clientX * (rect.width / (frameElement.clientWidth || rect.width)),
+        y: rect.top + event.clientY * (rect.height / (frameElement.clientHeight || rect.height)),
       };
     }
 
     findInteractiveTarget(node) {
-      if (!(node instanceof Element)) {
+      // Elements inside an iframe belong to a different JavaScript realm.
+      if (!node || node.nodeType !== 1 || typeof node.closest !== "function") {
         return null;
       }
+      if (node.closest('[data-cursor="default"]')) return null;
 
       return node.closest(INTERACTIVE_SELECTOR);
     }
@@ -141,6 +150,8 @@
         "mousemove",
         (event) => {
           this.track(this.getPoint(event, frameElement));
+          if (this.findInteractiveTarget(event.target)) this.hold();
+          else this.relax();
         },
         { passive: true },
       );
@@ -186,14 +197,16 @@
 
       const style = doc.createElement("style");
       style.id = IFRAME_CURSOR_STYLE_ID;
-      style.textContent = "* { cursor: none !important; }";
+      const cursor = getComputedStyle(document.documentElement).cursor;
+      style.textContent = `* { cursor: ${cursor} !important; }`;
       (doc.head || doc.documentElement).appendChild(style);
     }
 
     bindFrame(frame) {
-      if (frame.dataset.nativeCursor === "true") {
+      if (frame.dataset.nativeCursor === "true" || this.boundFrames.has(frame)) {
         return;
       }
+      this.boundFrames.add(frame);
 
       const attach = () => {
         try {
@@ -212,6 +225,8 @@
     }
 
     observeFrames(doc) {
+      if (this.observedDocuments.has(doc)) return;
+      this.observedDocuments.add(doc);
       doc.querySelectorAll("iframe").forEach((frame) => this.bindFrame(frame));
 
       const observer = new MutationObserver((mutations) => {
@@ -238,7 +253,11 @@
     }
   }
 
-  window.addEventListener("load", () => {
+  const initialize = () => {
+    // Embedded Arcana uses its parent's cursor; standalone pages use this same implementation.
+    if (window.frameElement?.dataset.sharedCursor === "true") return;
     new Cursor();
-  });
+  };
+  if (document.readyState === "complete") initialize();
+  else window.addEventListener("load", initialize, { once: true });
 })();

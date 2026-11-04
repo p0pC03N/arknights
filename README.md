@@ -33,6 +33,18 @@ git push origin main
 
 推送到 `main` 后会触发 GitHub Actions 部署。
 
+## 塔罗友链
+
+`/#operator` 保留整副牌的随机抽取玩法，友链统一维护在 `src/data/friend-links.json`：
+
+```json
+{ "id": "unique-name", "name": "朋友的名字", "url": "https://example.com" }
+```
+
+新增时向数组添加一项，使用唯一的 `id` 和完整的 HTTPS 地址，然后重新构建发布即可。牌组、加载失败时的直达链接和星门过渡页共用这份列表，不需要单独配置动画或素材。
+
+牌组与星门分别位于 `src/pages/friend-links.astro`、`src/pages/friend-links-gate.astro`，交互脚本位于 `src/scripts/friend-links-*.js`。牌图使用 `public/friend-links-deck/*.webp`；首次只加载共享牌背，翻牌时才加载对应牌面。页面离开时暂停渲染，返回时复用场景。加载失败时提供重试和直接访问友链的入口。
+
 ## 许可证
 
 本仓库保留上游模板的 `MIT License`。当前站点基于 [Yue-plus/astro-arknights](https://github.com/Yue-plus/astro-arknights) 二次开发，后续视觉和内容会逐步替换为个人站点版本。
