@@ -49,6 +49,12 @@ git push origin main
 
 小猫功能通过 `src/features.ts` 中的 `CAT_ENABLED = false` 暂停展示：首页唤猫、CAT 导航与页面、文章阅读奖励均不启用，旧 `#more` 链接返回首页。实现、素材和浏览器本地存档保留；以后可将开关改为 `true` 后重新构建发布。
 
+## 封存档案与粒子守档人
+
+独立 WORLD 页已从导航和运行时页面列表撤下，旧 `#world` 链接转到 `#media`。封存页采用细线目录、按需加载的加密档案和粒子罗小黑：`src/pages/_views/04-Media.tsx`、`src/components/ArchiveGuardian.tsx`、`src/_styles/archive.css`。
+
+粒子从轻量矢量轮廓 `public/images/archive/xiaohei.svg` 采样，支持鼠标拨散、归位、呼吸和眨眼，离开栏目或切到后台时暂停；减少动态效果模式显示静态粒子。它只负责视觉效果，与暂停中的养猫功能和存档无关。打开档案后阅读区展开，手机端保留独立的正文滚动区。
+
 ## 许可证
 
 本仓库保留上游模板的 `MIT License`。当前站点基于 [Yue-plus/astro-arknights](https://github.com/Yue-plus/astro-arknights) 二次开发，后续视觉和内容会逐步替换为个人站点版本。

@@ -411,7 +411,8 @@ function ValidationViewport({
             type="password"
             value={pw}
             onChange={(event) => onChange(event.target.value)}
-            placeholder="\u8f93\u5165\u5bc6\u94a5"
+            placeholder="输入密钥"
+            aria-label="输入密钥"
             className="h-[3.5rem] flex-1 rounded-[1.1rem] border border-white/10 bg-black/40 px-4 text-white outline-none transition-colors duration-300 focus:border-cyan-300/35"
             onKeyDown={(event) => {
               if (event.key !== "Enter") return;
@@ -477,13 +478,21 @@ export default function EncryptedArticle(props: {
   useEffect(() => {
     if (stage !== "revealing" || sourceLines.length === 0) return undefined;
 
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setDisplayLines(sourceLines);
+      setStage("unlocked");
+      setStatusLine("ARCHIVED");
+      return undefined;
+    }
+
     let tick = 0;
     let startTimer: number | undefined;
     let finishTimer: number | undefined;
     let intervalTimer: number | undefined;
-    const lineStagger = 4;
+    // In the embedded reader, keep the reveal bounded even for a long archive.
+    const lineStagger = presentation === "panel" ? Math.min(1, 8 / Math.max(1, sourceLines.length)) : 4;
     const decodeDuration = 16;
-    const totalTicks = sourceLines.length * lineStagger + decodeDuration + 24;
+    const totalTicks = sourceLines.length * lineStagger + decodeDuration + (presentation === "panel" ? 2 : 24);
 
     articleScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
 
@@ -514,6 +523,7 @@ export default function EncryptedArticle(props: {
           if (intervalTimer) window.clearInterval(intervalTimer);
           setDisplayLines(sourceLines);
           finishTimer = window.setTimeout(() => {
+            if (presentation === "panel") articleScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
             setStage("unlocked");
             setStatusLine("ARCHIVED");
           }, 160);
@@ -526,7 +536,7 @@ export default function EncryptedArticle(props: {
       if (intervalTimer) window.clearInterval(intervalTimer);
       if (finishTimer) window.clearTimeout(finishTimer);
     };
-  }, [sourceLines, stage]);
+  }, [sourceLines, stage, presentation]);
 
   function resetSignal(nextValue: string) {
     setPw(nextValue);
@@ -627,7 +637,7 @@ export default function EncryptedArticle(props: {
                 <div className="space-y-1 font-n15eMedium text-[#a4001a]">
                   <div className="text-[1.15rem] tracking-[0.5em]">---⚠⚠⚠---</div>
                   <div className="text-[1.05rem] tracking-[0.42em]">---warning---</div>
-                  <div className="text-[2rem] tracking-[0.18em] portrait:text-[1.45rem]">---\u6863\u6848\u65e0\u6743\u67e5\u770b---</div>
+                  <div className="text-[2rem] tracking-[0.18em] portrait:text-[1.45rem]">---档案无权查看---</div>
                 </div>
               </div>
             </div>

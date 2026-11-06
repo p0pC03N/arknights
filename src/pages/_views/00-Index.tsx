@@ -4,6 +4,7 @@ import { useStore } from "@nanostores/react";
 import { directions } from "../../components/store/lineDecoratorStore";
 import { readyToTouch, viewIndex } from "../../components/store/rootLayoutStore.ts";
 import { CAT_ENABLED } from "../../features";
+import arknightsConfig from "../../../arknights.config";
 import PixelCat from "../../components/cat/PixelCat";
 import {
   CAT_PROFILE_EVENT,
@@ -304,7 +305,7 @@ function HeroCatOverlay() {
 
   const openCatHome = () => {
     location.hash = "more";
-    viewIndex.set(5);
+    viewIndex.set(arknightsConfig.navbar.items.findIndex((item) => item.href.endsWith("#more")));
   };
 
   const popCat = () => {

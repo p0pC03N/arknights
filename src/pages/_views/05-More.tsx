@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useStore } from "@nanostores/react";
 import { viewIndex, readyToTouch } from "../../components/store/rootLayoutStore.ts";
 import { directions } from "../../components/store/lineDecoratorStore";
+import arknightsConfig from "../../../arknights.config";
 import PixelCat from "../../components/cat/PixelCat";
 import {
   CAT_PROFILE_EVENT,
@@ -188,7 +189,7 @@ export default function More() {
   const [effects, setEffects] = useState<CatEffect[]>([]);
 
   useEffect(() => {
-    const isActive = $viewIndex === 5 && $readyToTouch;
+    const isActive = $viewIndex === arknightsConfig.navbar.items.findIndex((item) => item.href.endsWith("#more")) && $readyToTouch;
     if (isActive) directions.set({ top: false, right: false, bottom: true, left: false });
     setActive(isActive);
   }, [$viewIndex, $readyToTouch]);

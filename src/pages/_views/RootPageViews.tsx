@@ -5,7 +5,6 @@ import RootPageViewTemplate from "./RootPageViewTemplate.tsx";
 import Index from "./00-Index.tsx";
 import Information from "./01-Information.tsx";
 import Operator from "./02-Operator.tsx";
-import World from "./03-World.tsx";
 import Media from "./04-Media.tsx";
 import More from "./05-More.tsx";
 import { CAT_ENABLED } from "../../features";
@@ -43,7 +42,11 @@ function canConsumeScroll(element: HTMLElement, deltaY: number) {
 
 // Retired cat bookmarks return to the home page while the feature is shelved.
 function resolveViewIndex() {
-    const hash = location.hash.slice(1);
+    let hash = location.hash.slice(1);
+    if (hash === "world") {
+        hash = "media";
+        history.replaceState(history.state, "", `${location.pathname}${location.search}#media`);
+    }
     if (!CAT_ENABLED && hash === "more") {
         history.replaceState(history.state, "", `${location.pathname}${location.search}#index`);
         return 0;
@@ -146,7 +149,7 @@ export default function RootPageViews() {
 
     const renderedIndexes = new Set(visitedIndexes).add(localViewIndex);
 
-    return [Index, Information, Operator, World, Media, ...(CAT_ENABLED ? [More] : [])].map((Element, index) =>
+    return [Index, Information, Operator, Media, ...(CAT_ENABLED ? [More] : [])].map((Element, index) =>
         renderedIndexes.has(index) ? <RootPageViewTemplate key={index} selfIndex={index}><Element /></RootPageViewTemplate> : null
     )
 }

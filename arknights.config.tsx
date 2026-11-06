@@ -33,7 +33,6 @@ const config: ArknightsConfig = {
       { title: "INDEX", subtitle: "首页", href: `${base}#index` },
       { title: "SIGNAL", subtitle: "动态", href: `${base}#information` },
       { title: "PROFILE", subtitle: "名片", href: `${base}#operator` },
-      { title: "DOSSIER", subtitle: "归档", href: `${base}#world` },
       { title: "ARCHIVE", subtitle: "封存", href: `${base}#media` },
       ...(CAT_ENABLED ? [{ title: "CAT", subtitle: "小猫", href: `${base}#more` }] : []),
     ],
@@ -55,7 +54,7 @@ const config: ArknightsConfig = {
 
   pageTracker: {
     microInfo: "CORN KINGDOM",
-    labels: ["HOMEPAGE", "SIGNAL", "PROFILE", "DOSSIER", "ARCHIVE", ...(CAT_ENABLED ? ["CAT"] : [])],
+    labels: ["HOMEPAGE", "SIGNAL", "PROFILE", "ARCHIVE", ...(CAT_ENABLED ? ["CAT"] : [])],
   },
 
   rootPage: {
@@ -177,7 +176,6 @@ const config: ArknightsConfig = {
     },
 
     MEDIA: {
-      rightImage: `${base}images/terra/right.jpg`,
       articles: [
         {
           title: "封存档案-00",

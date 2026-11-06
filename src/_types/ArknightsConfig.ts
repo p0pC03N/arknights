@@ -88,7 +88,7 @@ export type ArknightsConfig = {
     };
 
     MEDIA?: {
-      rightImage: string;
+      rightImage?: string;
       articles: TerraOmniaArticle[];
     };
   };

@@ -1,167 +1,150 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "@nanostores/react";
 import { readyToTouch, viewIndex } from "../../components/store/rootLayoutStore";
 import { directions } from "../../components/store/lineDecoratorStore";
 import arknightsConfig from "../../../arknights.config";
 import EncryptedArticle, { type EncryptedPayload } from "../../components/EncryptedArticle";
+import ArchiveGuardian from "../../components/ArchiveGuardian";
+import "../../_styles/archive.css";
 
 type MediaArticle = NonNullable<NonNullable<typeof arknightsConfig.rootPage.MEDIA>["articles"]>[number];
+const payloadModules = import.meta.glob<{ default: EncryptedPayload }>("/src/content/secret/*.payload.json");
+const mediaIndex = arknightsConfig.navbar.items.findIndex((item) => item.href.endsWith("#media"));
 
-const payloadModules = import.meta.glob<{ default: EncryptedPayload }>("/src/content/secret/*.payload.json", { eager: true });
-const payloadMap = Object.fromEntries(
-  Object.entries(payloadModules).map(([path, mod]) => {
-    const file = path.split("/").pop() ?? "";
-    return [file.replace(/\.payload\.json$/i, ""), mod.default];
-  }),
-) as Record<string, EncryptedPayload>;
-
-function getArticleId(article?: MediaArticle) {
-  if (!article) return "secret";
-  if (article.secretId) return String(article.secretId);
-  const href = String(article.href ?? "");
-  return href.split("?")[0].split("#")[0].split("/").filter(Boolean).pop() ?? "secret";
+function getArticleId(article: MediaArticle) {
+  return article.secretId ?? article.href.split("?")[0].split("#")[0].split("/").filter(Boolean).pop() ?? "secret";
 }
-
-const VISUAL_ACCENTS = [
-  {
-    glow: "rgba(56,189,248,0.28)",
-    gradient:
-      "radial-gradient(circle at 30% 24%, rgba(56,189,248,.22), transparent 20%), radial-gradient(circle at 72% 64%, rgba(186,230,253,.12), transparent 22%), linear-gradient(140deg, rgba(2,6,23,.2), rgba(2,6,23,.74))",
-  },
-  {
-    glow: "rgba(125,211,252,0.3)",
-    gradient:
-      "radial-gradient(circle at 38% 34%, rgba(34,211,238,.2), transparent 18%), radial-gradient(circle at 66% 58%, rgba(99,102,241,.12), transparent 22%), linear-gradient(140deg, rgba(2,6,23,.2), rgba(2,6,23,.74))",
-  },
-  {
-    glow: "rgba(248,250,252,0.22)",
-    gradient:
-      "radial-gradient(circle at 35% 28%, rgba(248,250,252,.16), transparent 18%), radial-gradient(circle at 70% 56%, rgba(148,163,184,.12), transparent 20%), linear-gradient(140deg, rgba(2,6,23,.2), rgba(2,6,23,.74))",
-  },
-];
 
 export default function Media() {
   const $viewIndex = useStore(viewIndex);
   const $readyToTouch = useStore(readyToTouch);
-  const [active, setActive] = useState(false);
+  const active = $viewIndex === mediaIndex && $readyToTouch;
   const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  const base = import.meta.env.BASE_URL;
-  const media = useMemo(() => arknightsConfig?.rootPage?.MEDIA, []);
-  const rightImage = useMemo(() => media?.rightImage ?? `${base}images/terra/right.jpg`, [base, media]);
-  const articles = useMemo(() => media?.articles ?? [], [media]);
+  const [loadedPayload, setLoadedPayload] = useState<{ id: string; value: EncryptedPayload } | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const [signal, setSignal] = useState(0);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
+  const directoryScroll = useRef(0);
+  const returnFocus = useRef<number | null>(null);
+  const rowRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const articles = useMemo(() => arknightsConfig.rootPage.MEDIA?.articles ?? [], []);
+  const selectedArticle = articles.find((article) => getArticleId(article) === selectedId) ?? null;
+  const selectedIndex = selectedArticle ? articles.indexOf(selectedArticle) : -1;
+  const payload = loadedPayload?.id === selectedId ? loadedPayload.value : null;
 
   useEffect(() => {
-    const isActive = $viewIndex === 4 && $readyToTouch;
-    if (isActive) directions.set({ top: false, right: true, bottom: true, left: false });
-    setActive(isActive);
-  }, [$readyToTouch, $viewIndex]);
+    if (active) directions.set({ top: false, right: true, bottom: true, left: false });
+    if (active) document.documentElement.dataset.archiveOpen = "true";
+    else delete document.documentElement.dataset.archiveOpen;
+    return () => { delete document.documentElement.dataset.archiveOpen; };
+  }, [active]);
 
-  const selectedArticle =
-    articles.find((article) => getArticleId(article as MediaArticle) === selectedId) ?? null;
-  const selectedPayload = selectedArticle ? payloadMap[getArticleId(selectedArticle as MediaArticle)] : null;
-  const accent = VISUAL_ACCENTS[(selectedArticle ? articles.indexOf(selectedArticle) : 0) % VISUAL_ACCENTS.length];
+  useEffect(() => {
+    if (active && selectedId) document.documentElement.dataset.archiveReading = "true";
+    else delete document.documentElement.dataset.archiveReading;
+    return () => { delete document.documentElement.dataset.archiveReading; };
+  }, [active, selectedId]);
+
+  useEffect(() => {
+    setLoadedPayload(null);
+    setLoadError(false);
+    if (!selectedId) return;
+    let cancelled = false;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const loader = payloadModules[`/src/content/secret/${selectedId}.payload.json`];
+    Promise.race([
+      loader ? loader() : Promise.reject(new Error("Missing archive")),
+      new Promise<never>((_, reject) => { timeout = setTimeout(() => reject(new Error("Archive timed out")), 10000); }),
+    ]).then((module) => {
+      if (!cancelled) setLoadedPayload({ id: selectedId, value: module.default });
+    }).catch(() => {
+      if (!cancelled) setLoadError(true);
+    }).finally(() => clearTimeout(timeout));
+    return () => { cancelled = true; clearTimeout(timeout); };
+  }, [selectedId, retry]);
+
+  useEffect(() => {
+    if (!active) return;
+    if (!selectedId) {
+      const index = returnFocus.current;
+      if (index === null) return;
+      returnFocus.current = null;
+      // Wait for the directory's visibility transition before restoring keyboard focus.
+      const timer = window.setTimeout(() => {
+        pageRef.current?.scrollTo({ top: directoryScroll.current, behavior: "auto" });
+        rowRefs.current[index]?.focus({ preventScroll: true });
+      }, 420);
+      return () => window.clearTimeout(timer);
+    }
+    closeRef.current?.focus({ preventScroll: true });
+    const handleEscape = (event: KeyboardEvent) => {
+      // A focused reader consumes Escape; the archive directory stays on this page.
+      if (event.key === "Escape") closeArchive();
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [active, selectedId]);
+
+  function openArchive(article: MediaArticle) {
+    if (!selectedId) directoryScroll.current = pageRef.current?.scrollTop ?? 0;
+    pageRef.current?.scrollTo({ top: 0, behavior: "auto" });
+    setSelectedId(getArticleId(article));
+    setSignal((value) => value + 1);
+  }
+
+  function closeArchive() {
+    returnFocus.current = selectedIndex;
+    setSelectedId(null);
+  }
 
   return (
-    <div
-      id="media"
-      className={`absolute left-auto right-0 top-0 h-full w-[100vw] max-w-[180rem] transition-all duration-1000 ${
-        active ? "visible opacity-100" : "invisible opacity-0"
-      }`}
-    >
-      <div className="relative h-full w-full overflow-hidden bg-[#03070b]">
-        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(2,6,23,.92),rgba(2,6,23,.82)_45%,rgba(2,6,23,.94))]" />
-        <div className="absolute inset-0 panel-grid opacity-[0.16]" />
-
-        <div className="absolute inset-x-[4.5rem] top-[8.75rem] bottom-[2.5rem] grid grid-cols-[minmax(17rem,26rem)_minmax(0,1fr)] gap-6 portrait:inset-x-[1.25rem] portrait:top-[8.75rem] portrait:grid-cols-1">
-          <aside className="relative overflow-hidden rounded-[1.7rem] border border-white/10 bg-black/35 panel-grid panel-noise backdrop-blur-md glow-frame">
-            <div className="border-b border-white/10 px-6 py-5">
-              <div className="text-[0.72rem] font-benderBold tracking-[0.38em] text-white/45">SEALED CENTER</div>
-              <div className="mt-2 text-[2rem] font-benderBold tracking-[0.08em] text-white">{"\u5c01\u5b58"}</div>
-            </div>
-
-            <nav className="h-[calc(100%-6.5rem)] overflow-y-auto px-4 py-4">
-              <div className="space-y-3">
-                {articles.map((article, index) => {
-                  const articleId = getArticleId(article as MediaArticle);
-                  const selected = articleId === selectedId;
-
-                  return (
-                    <button
-                      key={`${article.href}-${index}`}
-                      type="button"
-                      onClick={() => setSelectedId(articleId)}
-                      className={`group relative block w-full overflow-hidden rounded-[1.1rem] border bg-black/35 px-4 py-4 text-left text-inherit transition-all duration-300 panel-grid panel-noise ${
-                        selected ? "border-cyan-200/28 bg-cyan-200/8 text-white glow-blue" : "border-white/10 text-white/72 hover:border-white/25 hover:text-white"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <div className="text-[0.66rem] font-benderBold tracking-[0.3em] text-white/38">SECRET // {String(index + 1).padStart(2, "0")}</div>
-                          <div className="mt-2 text-[1rem] font-benderBold tracking-[0.06em]">{article.title}</div>
-                          {article.date && <div className="mt-2 text-[0.78rem] tracking-[0.18em] text-white/42">{article.date}</div>}
-                        </div>
-                        <div className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.62rem] font-benderBold tracking-[0.26em] text-white/55">
-                          {article.locked ? "LOCKED" : "OPEN"}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </nav>
-          </aside>
-
-          <section className="relative overflow-hidden rounded-[1.9rem] border border-white/10 bg-black/35 panel-grid panel-noise backdrop-blur-md glow-frame">
-            <div className="absolute inset-0 bg-cover bg-center opacity-24" style={{ backgroundImage: `url(${rightImage})` }} />
-            <div className="absolute inset-0 transition-all duration-500" style={{ backgroundImage: accent.gradient }} />
-            <div className="absolute inset-0 scanlines opacity-45" />
-            <div className="absolute inset-[2.4rem] rounded-[1.8rem] border border-white/10 bg-black/14 portrait:inset-[1rem]" />
-            <div className="absolute inset-[4.6rem] rounded-[1.5rem] border border-cyan-100/10 portrait:inset-[1.75rem]" />
-            <div className="absolute left-1/2 top-1/2 h-[15rem] w-[15rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-100/10 portrait:h-[10rem] portrait:w-[10rem]" />
-            <div
-              className="absolute left-1/2 top-1/2 h-[11rem] w-[11rem] -translate-x-1/2 -translate-y-1/2 rounded-full border portrait:h-[7rem] portrait:w-[7rem]"
-              style={{ borderColor: accent.glow, boxShadow: `0 0 42px ${accent.glow}` }}
-            />
-            <div className="absolute inset-x-[12%] top-1/2 h-px -translate-y-1/2 bg-white/14" />
-            <div className="absolute inset-y-[14%] left-1/2 w-px -translate-x-1/2 bg-white/10" />
-            <div className="absolute inset-[16%] border border-white/8 portrait:inset-[11%]" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,transparent_42%,rgba(2,6,23,.58)_100%)]" />
-
-            <div
-              className={`absolute inset-0 z-[2] transition-all duration-500 ${
-                selectedArticle ? "translate-x-0 opacity-100" : "translate-x-[10%] opacity-0 pointer-events-none"
-              }`}
-            >
-              <div className="flex h-full flex-col bg-[linear-gradient(180deg,rgba(3,8,13,.74),rgba(3,8,13,.94))] backdrop-blur-md">
-                <button
-                  type="button"
-                  onClick={() => setSelectedId(null)}
-                  className="absolute right-5 top-5 z-[4] rounded-full border border-white/10 bg-black/35 px-3 py-2 text-[0.68rem] font-benderBold tracking-[0.28em] text-white/68 transition-colors duration-300 hover:border-white/20 hover:text-white portrait:right-4 portrait:top-4"
-                >
-                  CLOSE
-                </button>
-
-                <div className="min-h-0 flex-1 p-5 portrait:p-4">
-                  {selectedArticle && selectedPayload ? (
-                    <EncryptedArticle
-                      key={getArticleId(selectedArticle as MediaArticle)}
-                      presentation="panel"
-                      payload={selectedPayload}
-                      title={selectedArticle.title}
-                      hint={selectedArticle.keyHint}
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center rounded-[1.6rem] border border-white/10 bg-black/24 text-white/55">
-                      NO PAYLOAD
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
+    <div ref={pageRef} id="media" data-root-scroll-lock="true" className={`archive-page ${active ? "is-active" : ""} ${selectedArticle ? "is-reading" : ""}`}>
+      <div className="archive-watermark" aria-hidden="true">SEALED</div>
+      <div className="archive-atmosphere" aria-hidden="true">
+        {Array.from({ length: 20 }, (_, index) => <i key={index} style={{ left: `${(index * 37 + 9) % 100}%`, top: `${(index * 23 + 19) % 100}%`, animationDelay: `${-index * 1.7}s`, animationDuration: `${17 + index % 9}s` }} />)}
       </div>
+      <div className="archive-edition" aria-hidden="true">PERSONAL RECORDS / CORN KINGDOM</div>
+      <div className="archive-layout">
+        <section className="archive-index" aria-label="封存档案目录" aria-hidden={!!selectedArticle}>
+          <header>
+            <p className="archive-eyebrow"><span className="archive-tick" /> SEALED ARCHIVE</p>
+            <h1>封存档案<span className="archive-heading-dot">.</span></h1>
+          </header>
+          <nav className="archive-list" aria-label="选择档案">
+            {articles.map((article, index) => <button key={getArticleId(article)} ref={(node) => { rowRefs.current[index] = node; }} className="archive-row" onClick={() => openArchive(article)}>
+              <span className="archive-number">{String(index).padStart(2, "0")}</span>
+              <span className="archive-row-copy"><span className="archive-row-title">{article.title}</span><time className="archive-row-date">{article.date}</time></span>
+              <span className="archive-row-state">{article.locked ? "LOCKED" : "OPEN"}<span aria-hidden="true">↗</span></span>
+            </button>)}
+          </nav>
+          <div className="archive-index-footer"><span>INDEX / {String(articles.length).padStart(2, "0")}</span><span>SELECT A RECORD TO UNSEAL</span></div>
+        </section>
+
+        <figure className="archive-guardian">
+          <ArchiveGuardian active={active} resting={!!selectedArticle} signal={signal} />
+          <figcaption><span className="archive-eyebrow">THE QUIET KEEPER</span><span>Move closer. The dust remembers.</span></figcaption>
+        </figure>
+
+        {selectedArticle && <section className="archive-reader" aria-label={`阅读${selectedArticle.title}`}>
+          <div className="archive-reader-topbar">
+            <button ref={closeRef} type="button" className="archive-back" onClick={closeArchive}><span aria-hidden="true">←</span> DIRECTORY <span className="archive-back-cn">返回目录</span></button>
+            <span className="archive-reader-id">RECORD / {String(selectedIndex).padStart(2, "0")}</span>
+          </div>
+          <div className="archive-reader-layout">
+            <nav className="archive-rail" aria-label="切换档案">{articles.map((article, index) => <button key={getArticleId(article)} onClick={() => openArchive(article)} aria-label={article.title} aria-current={index === selectedIndex ? "page" : undefined}>{String(index).padStart(2, "0")}</button>)}</nav>
+            <div className="archive-reader-body">
+              {payload ? <EncryptedArticle key={selectedId} presentation="panel" payload={payload} title={selectedArticle.title} hint={selectedArticle.keyHint} /> : <div className="archive-load-state" role="status">
+                <span className="archive-eyebrow">{loadError ? "SIGNAL INTERRUPTED" : "RETRIEVING RECORD"}</span>
+                <p>{loadError ? "档案暂未连接，请稍后重试。" : "正在读取封存档案…"}</p>
+                {loadError && <button onClick={() => setRetry((value) => value + 1)}>RETRY / 重试</button>}
+              </div>}
+            </div>
+          </div>
+        </section>}
+      </div>
+      <div className="archive-bottom-note"><span>PRIVATE MEMORIES, QUIETLY KEPT.</span><span>SEALED / {String(articles.length).padStart(2, "0")}</span></div>
     </div>
   );
 }
